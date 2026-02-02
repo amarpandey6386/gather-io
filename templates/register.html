@@ -1,21 +1,48 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="register-container">
-    <h2>Join Gather.io</h2>
-    <form method="POST">
-        <input type="text" name="username" placeholder="Username" required><br>
-        <input type="email" name="email" placeholder="University Email" required><br>
-        <input type="password" name="password" placeholder="Password" required><br>
-        
-        <label for="role">I am a:</label>
-        <select name="role" id="role">
-            <option value="student">Student</option>
-            <option value="admin">Club Admin</option>
-        </select><br><br>
-        
-        <button type="submit">Register</button>
-    </form>
-    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+<div style="min-height: 90vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at top right, #e0e7ff, #f1f5f9); padding: 40px 20px;">
+    <div style="background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow); width: 100%; max-width: 450px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Create Account</h2>
+            <p style="color: var(--secondary); font-size: 0.95rem;">Join your university event community</p>
+        </div>
+
+        <form method="POST">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Username</label>
+                <input type="text" name="username" placeholder="johndoe" required 
+                       style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Email Address</label>
+                <input type="email" name="email" placeholder="john@uni.edu" required 
+                       style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Role</label>
+                <select name="role" style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; background: #fff; cursor: pointer;">
+                    <option value="student">I am a Student</option>
+                    <option value="admin">I am a Club Admin</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Password</label>
+                <input type="password" name="password" placeholder="Min. 8 characters" required 
+                       style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box;">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; border: none; padding: 14px; font-size: 1rem; cursor: pointer;">
+                Get Started
+            </button>
+        </form>
+
+        <p style="text-align: center; margin-top: 25px; color: var(--secondary); font-size: 0.9rem;">
+            Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary); font-weight: 700; text-decoration: none;">Log In</a>
+        </p>
+    </div>
 </div>
 {% endblock %}

@@ -68,6 +68,10 @@ nav {
 
 .hero-content { max-width: 600px; }
 
+.hero-content a{
+    text-decoration: none;
+}
+
 .hero h1 {
     font-size: 3.5rem;
     font-weight: 800;

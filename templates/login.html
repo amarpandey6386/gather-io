@@ -1,13 +1,36 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="login-container">
-    <h2>Login to Gather.io</h2>
-    <form method="POST">
-        <input type="email" name="email" placeholder="Email" required><br>
-        <input type="password" name="password" placeholder="Password" required><br>
-        <button type="submit">Login</button>
-    </form>
-    <p>New here? <a href="{{ url_for('register') }}">Create an account</a></p>
+<div style="min-height: 80vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at bottom left, #e0e7ff, #f1f5f9);">
+    <div style="background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow); width: 100%; max-width: 400px; border: 1px solid rgba(255,255,255,0.5);">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h2 style="font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Welcome Back</h2>
+            <p style="color: var(--secondary); font-size: 0.95rem;">Enter your credentials to access Gather.io</p>
+        </div>
+
+        <form method="POST">
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">Email Address</label>
+                <input type="email" name="email" placeholder="name@university.edu" required 
+                       style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; transition: 0.3s; box-sizing: border-box;" 
+                       onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem;">Password</label>
+                <input type="password" name="password" placeholder="••••••••" required 
+                       style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; transition: 0.3s; box-sizing: border-box;" 
+                       onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; border: none; padding: 14px; font-size: 1rem; cursor: pointer;">
+                Sign In
+            </button>
+        </form>
+
+        <p style="text-align: center; margin-top: 25px; color: var(--secondary); font-size: 0.9rem;">
+            New to Gather.io? <a href="{{ url_for('register') }}" style="color: var(--primary); font-weight: 700; text-decoration: none;">Create an account</a>
+        </p>
+    </div>
 </div>
 {% endblock %}
