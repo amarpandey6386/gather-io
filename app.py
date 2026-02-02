@@ -90,36 +90,48 @@ def admin_dashboard():
     if 'logged_in' not in session or session['role'] != 'admin':
         return redirect(url_for('login'))
 
+    user_id = session['user_id']
     db = get_db_connection()
     cursor = db.cursor(dictionary=True)
 
-    # 1. Fetch ideas suggested for THIS admin's club
-    # Hum admin ke managed_club_id ko session se ya users table se join karke nikalenge
+    # 1. Admin ka Club ID pata karo
     cursor.execute("""
-        SELECT i.*, u.username as creator_name,
-        (SELECT COUNT(*) FROM votes v WHERE v.idea_id = i.idea_id) as vote_total
-        FROM ideas i 
-        JOIN users u ON i.creator_id = u.user_id
-        WHERE i.target_club_id = (SELECT managed_club_id FROM users WHERE user_id = %s)
-        AND i.status = 'trending'
-        ORDER BY vote_total DESC
-    """, (session['user_id'],))
-    
-    trending_ideas = cursor.fetchall()
+    SELECT c.club_id, c.club_name 
+    FROM clubs c 
+    JOIN users u ON u.managed_club_id = c.club_id 
+    WHERE u.user_id = %s
+    """, (user_id,))
+    admin_club = cursor.fetchone()
 
-    # 2. Fetch Selected Ideas History
-    cursor.execute("""
-        SELECT i.title, i.category, s.event_status, s.event_id
-        FROM ideas i
-        JOIN selected_events s ON i.idea_id = s.idea_id
-        WHERE s.admin_id = %s
-    """, (session['user_id'],))
-    
-    selected_history = cursor.fetchall()
+    if admin_club:
+        club_id = admin_club['club_id']
+        session['club_name'] = admin_club['club_name']
+
+        # 2. IDEA POOL: Wo ideas jo abhi tak select nahi huye (Pending/Trending)
+        cursor.execute("""
+            SELECT i.*, u.username as creator_name 
+            FROM ideas i 
+            JOIN users u ON i.user_id = u.user_id 
+            WHERE i.target_club_id = %s AND i.status != 'selected'
+            ORDER BY i.vote_total DESC
+        """, (club_id,))
+        idea_pool = cursor.fetchall()
+
+        # 3. SELECTED HISTORY: Jo pehle hi select ho chuke hain
+        cursor.execute("""
+            SELECT i.title, i.category, s.event_status, s.selected_at 
+            FROM ideas i 
+            JOIN selected_events s ON i.idea_id = s.idea_id 
+            WHERE i.target_club_id = %s
+        """, (club_id,))
+        history = cursor.fetchall()
+    else:
+        idea_pool = []
+        history = []
 
     cursor.close()
     db.close()
-    return render_template('admin_dash.html', trending=trending_ideas, history=selected_history)
+    return render_template('admin_dash.html', trending=idea_pool, history=history)
 
 @app.route('/logout')
 def logout():

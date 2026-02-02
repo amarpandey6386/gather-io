@@ -1,28 +1,64 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="form-container">
-    <h2>💡 Suggest a New Event Idea</h2>
-    <form method="POST">
-        <input type="text" name="title" placeholder="Event Title (e.g. Winter Hackathon)" required><br>
+<div style="min-height: 90vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at bottom right, #f8fafc, #eef2ff); padding: 40px 20px;">
+    
+    <div style="background: white; width: 100%; max-width: 650px; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08); padding: 50px; border: 1px solid rgba(255, 255, 255, 0.7); animation: fadeInUp 0.6s ease-out;">
         
-        <textarea name="description" placeholder="Describe your idea in detail..." required></textarea><br>
-        
-        <select name="category">
-            <option value="Tech">Tech</option>
-            <option value="Cultural">Cultural</option>
-            <option value="Sports">Sports</option>
-            <option value="Workshop">Workshop</option>
-        </select><br>
+        <div style="text-align: center; margin-bottom: 40px;">
+            <div style="background: var(--primary-light); width: 60px; height: 60px; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <span style="font-size: 1.8rem;">💡</span>
+            </div>
+            <h2 style="font-size: 2rem; font-weight: 800; color: #1e293b; margin-bottom: 10px;">Propose Your Vision</h2>
+            <p style="color: var(--secondary); font-size: 1rem;">Fill in the details to share your event idea with the campus community.</p>
+        </div>
 
-        <label>Select Target Club:</label>
-        <select name="target_club_id">
-            {% for club in clubs %}
-                <option value="{{ club.club_id }}">{{ club.club_name }}</option>
-            {% endfor %}
-        </select><br><br>
+        <form method="POST">
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: 700; color: #334155; margin-bottom: 10px; font-size: 0.95rem;">Event Title</label>
+                <input type="text" name="title" placeholder="e.g. Inter-College Battle of Bands" required 
+                       style="width: 100%; padding: 15px 20px; border-radius: 15px; border: 1.5px solid #e2e8f0; font-family: inherit; font-size: 1rem; transition: 0.3s; box-sizing: border-box;"
+                       onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 4px rgba(99, 102, 241, 0.1)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'">
+            </div>
 
-        <button type="submit">Submit to Marketplace</button>
-    </form>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                <div>
+                    <label style="display: block; font-weight: 700; color: #334155; margin-bottom: 10px; font-size: 0.95rem;">Category</label>
+                    <select name="category" style="width: 100%; padding: 15px 20px; border-radius: 15px; border: 1.5px solid #e2e8f0; background: white; cursor: pointer; font-family: inherit;">
+                        <option value="Tech">Tech & Innovation</option>
+                        <option value="Cultural">Cultural & Arts</option>
+                        <option value="Sports">Sports & Fitness</option>
+                        <option value="Workshop">Workshop & Seminar</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 700; color: #334155; margin-bottom: 10px; font-size: 0.95rem;">Target Club</label>
+                    <select name="target_club_id" style="width: 100%; padding: 15px 20px; border-radius: 15px; border: 1.5px solid #e2e8f0; background: white; cursor: pointer; font-family: inherit;">
+                        {% for club in clubs %}
+                            <option value="{{ club.club_id }}">{{ club.club_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 35px;">
+                <label style="display: block; font-weight: 700; color: #334155; margin-bottom: 10px; font-size: 0.95rem;">Description</label>
+                <textarea name="description" placeholder="What makes this event special? Mention the goals, target audience, and activities." required 
+                          style="width: 100%; padding: 15px 20px; border-radius: 15px; border: 1.5px solid #e2e8f0; font-family: inherit; font-size: 1rem; min-height: 150px; resize: vertical; box-sizing: border-box;"
+                          onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 4px rgba(99, 102, 241, 0.1)'" onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; border: none; padding: 18px; font-size: 1.1rem; font-weight: 700; border-radius: 16px; cursor: pointer; transition: 0.3s;">
+                Post to Marketplace
+            </button>
+        </form>
+    </div>
 </div>
+
+<style>
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
 {% endblock %}

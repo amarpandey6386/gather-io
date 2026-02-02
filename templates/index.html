@@ -3,15 +3,29 @@
 {% block content %}
 <section class="hero">
     <div class="hero-content">
-        <h1>Connect. Suggest. <br> Make it Happen.</h1>
-        <p>The ultimate marketplace for university club ideas. Vote for events you love or propose your own vision to the campus.</p>
-        {% if not session.get('logged_in') %}
+        {% if session.get('logged_in') %}
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <span style="background: var(--primary); color: white; padding: 5px 15px; border-radius: 50px; font-size: 1.85rem; font-weight: 700;">
+                    Welcome back, {{ session['username'] }}
+                </span>
+            </div>
+            <h1 style="font-size: 3.5rem; font-weight: 800; line-height: 1.1;">
+                Got a New Vision <br> <span style="color: var(--primary);">for Campus?</span>
+            </h1>
+            <p>Your community is waiting for the next big event. Suggest an idea or support others by voting for the best ones.</p>
+            <div style="display: flex; gap: 15px;">
+                <a href="{{ url_for('suggest_idea') }}" class="btn btn-primary" style="padding: 15px 35px; font-size: 1rem;">Propose an Idea</a>
+                <a href="#marketplace" class="btn btn-outline" style="padding: 15px 35px; font-size: 1rem; border-radius: 12px;">Browse Trends</a>
+            </div>
+        {% else %}
+            <h1>Connect. Suggest. <br> Make it Happen.</h1>
+            <p>The ultimate marketplace for university club ideas. Vote for events you love or propose your own vision to the campus.</p>
             <a href="{{ url_for('register') }}" class="btn btn-primary" style="padding: 15px 35px; font-size: 1rem;">Get Started for Free</a>
         {% endif %}
     </div>
 </section>
 
-<div class="container" style="padding: 60px 8%;">
+<div id="marketplace" class="container" style="padding: 60px 8%; ">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
         <h2 style="font-size: 2rem; font-weight: 800;">Trending Ideas</h2>
         <span style="color: var(--secondary); font-weight: 600;">Explore What's Hot 🔥</span>

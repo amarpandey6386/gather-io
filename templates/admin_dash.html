@@ -1,46 +1,89 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>🛠️ Admin Control Panel</h2>
+<div class="container" style="padding: 40px 8%; min-height: 100vh;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px;">
+        <div>
+            <span style="color: var(--primary); font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Control Panel</span>
+            <h1 style="font-size: 2.2rem; font-weight: 800; margin: 5px 0 0; color: #1e293b;">Club Administration</h1>
+        </div>
+        <div style="text-align: right;">
+            <p style="margin: 0; color: var(--secondary); font-size: 0.9rem;">Managing Club:</p>
+            <strong style="font-size: 1.1rem; color: #1e293b;">{{ session.get('club_name', 'University Club') }}</strong>
+        </div>
+    </div>
 
-<section>
-    <h3>📥 New Suggestions for Your Club</h3>
-    <div class="admin-grid">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 50px;">
+        <div style="background: white; padding: 25px; border-radius: 20px; box-shadow: var(--card-shadow); border: 1px solid rgba(0,0,0,0.02);">
+            <small style="color: var(--secondary); font-weight: 700;">PENDING IDEAS</small>
+            <h2 style="margin: 10px 0 0; font-size: 2rem; color: var(--primary);">{{ trending|length }}</h2>
+        </div>
+        <div style="background: white; padding: 25px; border-radius: 20px; box-shadow: var(--card-shadow); border: 1px solid rgba(0,0,0,0.02);">
+            <small style="color: var(--secondary); font-weight: 700;">LIVE EVENTS</small>
+            <h2 style="margin: 10px 0 0; font-size: 2rem; color: var(--success-color);">{{ history|length }}</h2>
+        </div>
+        <div style="background: white; padding: 25px; border-radius: 20px; box-shadow: var(--card-shadow); border: 1px solid rgba(0,0,0,0.02);">
+            <small style="color: var(--secondary); font-weight: 700;">TOTAL VOTES RCVD</small>
+            <h2 style="margin: 10px 0 0; font-size: 2rem; color: #f59e0b;">{{ trending|sum(attribute='vote_total') }}</h2>
+        </div>
+    </div>
+
+    <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
+        📥 Incoming Suggestions <span style="background: #fee2e2; color: #ef4444; font-size: 0.7rem; padding: 4px 10px; border-radius: 50px;">ACTION REQUIRED</span>
+    </h3>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; margin-bottom: 60px;">
         {% for idea in trending %}
-        <div class="admin-card">
-            <h4>{{ idea.title }} ({{ idea.vote_total }} Votes)</h4>
-            <p>Suggested by: <strong>{{ idea.creator_name }}</strong></p>
-            <p>{{ idea.description }}</p>
+        <div style="background: white; border-radius: 24px; padding: 30px; box-shadow: var(--card-shadow); border: 1px solid rgba(0,0,0,0.03); transition: 0.3s;" class="admin-card">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem;">👍 {{ idea.vote_total }} VOTES</span>
+                <small style="color: var(--secondary);">By {{ idea.creator_name }}</small>
+            </div>
+            <h4 style="font-size: 1.2rem; margin: 0 0 10px; font-weight: 700;">{{ idea.title }}</h4>
+            <p style="color: var(--secondary); font-size: 0.9rem; margin-bottom: 25px; line-height: 1.5;">{{ idea.description }}</p>
             
             <form action="{{ url_for('select_idea', idea_id=idea.idea_id) }}" method="POST">
-                <button type="submit" class="select-btn">✅ Select This Idea</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%; border: none; padding: 12px; border-radius: 12px; cursor: pointer; font-weight: 700;">
+                    Approve & Launch Event
+                </button>
             </form>
         </div>
         {% endfor %}
     </div>
-</section>
 
-<hr>
+    <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 25px;">📋 Managed Events History</h3>
+    <div style="background: white; border-radius: 20px; overflow: hidden; box-shadow: var(--card-shadow); border: 1px solid rgba(0,0,0,0.03);">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="background: #f8fafc;">
+                <tr>
+                    <th style="padding: 15px 20px; color: var(--secondary); font-size: 0.85rem;">EVENT NAME</th>
+                    <th style="padding: 15px 20px; color: var(--secondary); font-size: 0.85rem;">CATEGORY</th>
+                    <th style="padding: 15px 20px; color: var(--secondary); font-size: 0.85rem;">STATUS</th>
+                    <th style="padding: 15px 20px; color: var(--secondary); font-size: 0.85rem;">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in history %}
+                <tr style="border-top: 1px solid #f1f5f9;">
+                    <td style="padding: 15px 20px; font-weight: 700;">{{ event.title }}</td>
+                    <td style="padding: 15px 20px; color: var(--secondary);">{{ event.category }}</td>
+                    <td style="padding: 15px 20px;">
+                        <span style="background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">
+                            {{ event.event_status }}
+                        </span>
+                    </td>
+                    <td style="padding: 15px 20px;">
+                        <button style="background: none; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--primary);">📢 Notify</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
-<section>
-    <h3>📋 Selected Events History</h3>
-    <table>
-        <tr>
-            <th>Event Title</th>
-            <th>Category</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-        {% for event in history %}
-        <tr>
-            <td>{{ event.title }}</td>
-            <td>{{ event.category }}</td>
-            <td><span class="status-badge">{{ event.event_status }}</span></td>
-            <td>
-                <a href="#">📢 Make Announcement</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-</section>
+<style>
+    .admin-card:hover { transform: translateY(-5px); }
+</style>
 {% endblock %}
