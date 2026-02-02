@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+    <h2>💡 Suggest a New Event Idea</h2>
+    <form method="POST">
+        <input type="text" name="title" placeholder="Event Title (e.g. Winter Hackathon)" required><br>
+        
+        <textarea name="description" placeholder="Describe your idea in detail..." required></textarea><br>
+        
+        <select name="category">
+            <option value="Tech">Tech</option>
+            <option value="Cultural">Cultural</option>
+            <option value="Sports">Sports</option>
+            <option value="Workshop">Workshop</option>
+        </select><br>
+
+        <label>Select Target Club:</label>
+        <select name="target_club_id">
+            {% for club in clubs %}
+                <option value="{{ club.club_id }}">{{ club.club_name }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <button type="submit">Submit to Marketplace</button>
+    </form>
+</div>
+{% endblock %}

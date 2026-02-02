@@ -1,0 +1,19 @@
+<h3>My Suggestion History</h3>
+<table>
+    <tr>
+        <th>Title</th>
+        <th>Club</th>
+        <th>Status</th>
+        <th>Date</th>
+    </tr>
+    {% for idea in ideas %}
+    <tr>
+        <td>{{ idea.title }}</td>
+        <td>{{ idea.club_name }}</td>
+        <td><strong>{{ idea.status }}</strong></td>
+        <td>{{ idea.created_at.strftime('%Y-%m-%d') }}</td>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+<a href="{{ url_for('suggest_idea') }}">➕ Suggest New Idea</a>

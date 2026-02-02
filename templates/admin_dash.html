@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>🛠️ Admin Control Panel</h2>
+
+<section>
+    <h3>📥 New Suggestions for Your Club</h3>
+    <div class="admin-grid">
+        {% for idea in trending %}
+        <div class="admin-card">
+            <h4>{{ idea.title }} ({{ idea.vote_total }} Votes)</h4>
+            <p>Suggested by: <strong>{{ idea.creator_name }}</strong></p>
+            <p>{{ idea.description }}</p>
+            
+            <form action="{{ url_for('select_idea', idea_id=idea.idea_id) }}" method="POST">
+                <button type="submit" class="select-btn">✅ Select This Idea</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<hr>
+
+<section>
+    <h3>📋 Selected Events History</h3>
+    <table>
+        <tr>
+            <th>Event Title</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        {% for event in history %}
+        <tr>
+            <td>{{ event.title }}</td>
+            <td>{{ event.category }}</td>
+            <td><span class="status-badge">{{ event.event_status }}</span></td>
+            <td>
+                <a href="#">📢 Make Announcement</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</section>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="highlight-title">🌟 Live Events: Be a Part of the Action!</h2>
+
+<div class="event-container">
+    {% for event in events %}
+    <div class="event-card highlighted">
+        <div class="event-header">
+            <h3>{{ event.title }}</h3>
+            <span class="club-tag">By {{ event.club_name }}</span>
+        </div>
+        <p>{{ event.description }}</p>
+        
+        <div class="action-buttons">
+            <form action="{{ url_for('join_event', event_id=event.event_id, reg_type='participant') }}" method="POST">
+                <button type="submit" class="btn-participant">I'm Attending</button>
+            </form>
+
+            {% if event.current_volunteers < event.volunteer_limit %}
+                <form action="{{ url_for('join_event', event_id=event.event_id, reg_type='volunteer') }}" method="POST">
+                    <button type="submit" class="btn-volunteer">Volunteer ({{ event.volunteer_limit - event.current_volunteers }} spots left)</button>
+                </form>
+            {% else %}
+                <button class="btn-disabled" disabled>Volunteers Full</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,22 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gather.io | Event Marketplace</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <nav>
-        <h2>Gather.io</h2>
-        </nav>
+{% extends "base.html" %}
 
-    <div class="content">
-        {% block content %}{% endblock %}
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <h1>Connect. Suggest. <br> Make it Happen.</h1>
+        <p>The ultimate marketplace for university club ideas. Vote for events you love or propose your own vision to the campus.</p>
+        {% if not session.get('logged_in') %}
+            <a href="{{ url_for('register') }}" class="btn btn-primary" style="padding: 15px 35px; font-size: 1rem;">Get Started for Free</a>
+        {% endif %}
     </div>
+</section>
 
-    <footer>
-        <p>&copy; 2026 Gather.io - University Idea Marketplace</p>
-    </footer>
-</body>
-</html>
+<div class="container" style="padding: 60px 8%;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+        <h2 style="font-size: 2rem; font-weight: 800;">Trending Ideas</h2>
+        <span style="color: var(--secondary); font-weight: 600;">Explore What's Hot 🔥</span>
+    </div>
+    
+    <div class="marketplace-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px;">
+        {% for idea in ideas %}
+        <div class="idea-card" style="background: white; border-radius: 20px; padding: 30px; border: 1px solid rgba(0,0,0,0.05); box-shadow: var(--card-shadow); transition: 0.3s;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <span style="background: var(--primary-light); color: var(--primary); padding: 5px 15px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">{{ idea.category }}</span>
+                <span style="color: var(--secondary); font-size: 0.9rem; font-weight: 600;">⚡ {{ idea.vote_total }}</span>
+            </div>
+            
+            <h3 style="font-size: 1.3rem; margin-bottom: 12px; font-weight: 700;">{{ idea.title }}</h3>
+            <p style="color: var(--secondary); font-size: 0.95rem; margin-bottom: 25px; min-height: 50px;">{{ idea.description }}</p>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                <div>
+                    <small style="color: #94a3b8; display: block;">Target Club</small>
+                    <span style="font-weight: 600; font-size: 0.9rem;">{{ idea.club_name }}</span>
+                </div>
+                <button onclick="handleVote({{ idea.idea_id }})" class="btn-vote" style="background: var(--primary-light); border: none; padding: 10px 18px; border-radius: 12px; color: var(--primary); font-weight: 700; cursor: pointer;">
+                    Vote
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
