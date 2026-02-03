@@ -2,47 +2,91 @@
 
 {% block content %}
 <div style="min-height: 90vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at top right, #e0e7ff, #f1f5f9); padding: 40px 20px;">
-    <div style="background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow); width: 100%; max-width: 450px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-            <h2 style="font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Create Account</h2>
-            <p style="color: var(--secondary); font-size: 0.95rem;">Join your university event community</p>
+    
+    <div style="background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow); width: 100%; max-width: 480px; animation: fadeInUp 0.6s ease-out;">
+        
+        <div style="text-align: center; margin-bottom: 35px;">
+            <h2 style="font-size: 2rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Create Account</h2>
+            <p style="color: var(--secondary); font-size: 0.95rem;">Join the university event community today.</p>
         </div>
 
-        <form method="POST">
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Username</label>
-                <input type="text" name="username" placeholder="johndoe" required 
-                       style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box;">
+        <form method="POST" action="{{ url_for('register') }}">
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">Username</label>
+                <input type="text" name="username" placeholder="johndoe123" required 
+                       style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                       onfocus="this.style.borderColor='var(--primary)'">
             </div>
 
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Email Address</label>
-                <input type="email" name="email" placeholder="john@uni.edu" required 
-                       style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box;">
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">Email Address</label>
+                <input type="email" name="email" placeholder="name@university.edu" required 
+                       style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                       onfocus="this.style.borderColor='var(--primary)'">
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Role</label>
-                <select name="role" style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; background: #fff; cursor: pointer;">
-                    <option value="student">I am a Student</option>
-                    <option value="admin">I am a Club Admin</option>
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">I am registering as a...</label>
+                <select name="role" id="roleSelect" onchange="toggleClubInput()" required
+                        style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; background: #fff; cursor: pointer; font-family: inherit; font-weight: 600; color: #1e293b;">
+                    <option value="student">Student (I want to vote & suggest)</option>
+                    <option value="admin">Club Admin (I want to manage events)</option>
                 </select>
             </div>
 
-            <div style="margin-bottom: 25px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.85rem;">Password</label>
-                <input type="password" name="password" placeholder="Min. 8 characters" required 
-                       style="width: 100%; padding: 12px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box;">
+            <div id="clubInputGroup" style="display: none; margin-bottom: 18px; padding: 15px; background: #f8fafc; border-radius: 15px; border: 1px dashed var(--primary); animation: slideDown 0.3s ease;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">Your Club Name</label>
+                <input type="text" id="club_name" name="club_name" placeholder="e.g. Photography Club" 
+                       style="width: 100%; padding: 12px 16px; border-radius: 10px; border: 1.5px solid #cbd5e1; outline: none; box-sizing: border-box; font-family: inherit;">
+                <small style="display: block; margin-top: 8px; color: #64748b; font-size: 0.75rem;">This club will be created and assigned to you automatically.</small>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; border: none; padding: 14px; font-size: 1rem; cursor: pointer;">
-                Get Started
+            <div style="margin-bottom: 30px;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">Password</label>
+                <input type="password" name="password" placeholder="••••••••" required 
+                       style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                       onfocus="this.style.borderColor='var(--primary)'">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; border: none; padding: 16px; font-size: 1rem; font-weight: 700; border-radius: 14px; cursor: pointer;">
+                Create Account
             </button>
         </form>
 
         <p style="text-align: center; margin-top: 25px; color: var(--secondary); font-size: 0.9rem;">
-            Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary); font-weight: 700; text-decoration: none;">Log In</a>
+            Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary); font-weight: 700; text-decoration: none;">Sign In</a>
         </p>
     </div>
 </div>
+
+<script>
+function toggleClubInput() {
+    const roleSelect = document.getElementById('roleSelect');
+    const clubGroup = document.getElementById('clubInputGroup');
+    const clubInput = document.getElementById('club_name');
+
+    if (roleSelect.value === 'admin') {
+        clubGroup.style.display = 'block';
+        clubInput.required = true;
+    } else {
+        clubGroup.style.display = 'none';
+        clubInput.required = false;
+        clubInput.value = ''; // Reset if switched back
+    }
+}
+
+// Ensure correct state on page load
+window.onload = toggleClubInput;
+</script>
+
+<style>
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 {% endblock %}

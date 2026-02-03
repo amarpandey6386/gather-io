@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from database_helper import get_db_connection
 from flask_bcrypt import Bcrypt
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_key_gather_io' # Session ke liye zaroori hai
@@ -33,35 +34,33 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password_candidate = request.form['password']
-        
+        email = request.form.get('email')
+        password = request.form.get('password')
+
         db = get_db_connection()
-        cursor = db.cursor(dictionary=True) # dictionary=True se data {'column': value} format mein milega
+        cursor = db.cursor(dictionary=True)
         
+        # User ko email se dhoondo
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
         
-        if user and bcrypt.check_password_hash(user['password'], password_candidate):
-            # Session mein user ki details save karna
+        cursor.close()
+        db.close()
+
+        # check_password_hash hashed aur plain password ko compare karta hai
+        if user and check_password_hash(user['password'], password):
             session['logged_in'] = True
             session['user_id'] = user['user_id']
             session['username'] = user['username']
             session['role'] = user['role']
+            # managed_club_id ko session mein dalo (Admin dashboard ke liye)
+            session['managed_club_id'] = user.get('managed_club_id')
             
-            flash(f"Welcome back, {user['username']}!", 'success')
-            
-            # Role ke hisaab se redirect karna
-            if user['role'] == 'admin':
-                return redirect(url_for('admin_dashboard'))
-            else:
-                return redirect(url_for('student_dashboard'))
+            flash(f"Welcome back, {user['username']}!", "success")
+            return redirect(url_for('index'))
         else:
-            flash('Invalid login credentials', 'danger')
-            
-        cursor.close()
-        db.close()
-        
+            flash("Invalid email or password. Please try again.", "danger")
+
     return render_template('login.html')
 
 @app.route('/student_dashboard')
@@ -94,40 +93,47 @@ def admin_dashboard():
     db = get_db_connection()
     cursor = db.cursor(dictionary=True)
 
-    # 1. Admin ka Club ID pata karo
+    # 1. Admin ka data fetch karein
+    cursor.execute("SELECT managed_club_id, username FROM users WHERE user_id = %s", (user_id,))
+    admin_data = cursor.fetchone()
+    
+    # DEBUG: Terminal mein check karne ke liye
+    print(f"--- DEBUG ADMIN --- ID: {user_id}, Data: {admin_data}")
+
+    if not admin_data or admin_data['managed_club_id'] is None:
+        cursor.close()
+        db.close()
+        # Ek pyara sa error message page par hi dikhane ke liye
+        return f"<h1>Setup Incomplete</h1><p>Bhai, database mein user <b>{session['username']}</b> ko abhi tak koi club assign nahi hua hai. MySQL mein <code>managed_club_id</code> set karo.</p>"
+
+    club_id = admin_data['managed_club_id']
+
+    # 2. Club Info fetch karein
+    cursor.execute("SELECT club_name FROM clubs WHERE club_id = %s", (club_id,))
+    club_info = cursor.fetchone()
+    session['club_name'] = club_info['club_name'] if club_info else "Assigned Club"
+
+    # 3. IDEA POOL: Student suggestions (sirf is club ke liye)
     cursor.execute("""
-    SELECT c.club_id, c.club_name 
-    FROM clubs c 
-    JOIN users u ON u.managed_club_id = c.club_id 
-    WHERE u.user_id = %s
+        SELECT i.*, u.username as creator_name, 
+        COUNT(v.idea_id) as vote_total
+        FROM ideas i 
+        JOIN users u ON i.creator_id = u.user_id 
+        LEFT JOIN votes v ON i.idea_id = v.idea_id
+        WHERE i.target_club_id = %s AND i.status != 'selected'
+        ORDER BY i.vote_total DESC
+    """, (club_id,))
+    idea_pool = cursor.fetchall()
+
+    # 4. HISTORY: Pehle se select kiye huye events
+    cursor.execute("""
+        SELECT i.title, i.category, s.event_status, s.created_at 
+        FROM selected_events s
+        JOIN ideas i ON s.idea_id = i.idea_id
+        WHERE s.admin_id = %s
+        ORDER BY s.created_at DESC
     """, (user_id,))
-    admin_club = cursor.fetchone()
-
-    if admin_club:
-        club_id = admin_club['club_id']
-        session['club_name'] = admin_club['club_name']
-
-        # 2. IDEA POOL: Wo ideas jo abhi tak select nahi huye (Pending/Trending)
-        cursor.execute("""
-            SELECT i.*, u.username as creator_name 
-            FROM ideas i 
-            JOIN users u ON i.user_id = u.user_id 
-            WHERE i.target_club_id = %s AND i.status != 'selected'
-            ORDER BY i.vote_total DESC
-        """, (club_id,))
-        idea_pool = cursor.fetchall()
-
-        # 3. SELECTED HISTORY: Jo pehle hi select ho chuke hain
-        cursor.execute("""
-            SELECT i.title, i.category, s.event_status, s.selected_at 
-            FROM ideas i 
-            JOIN selected_events s ON i.idea_id = s.idea_id 
-            WHERE i.target_club_id = %s
-        """, (club_id,))
-        history = cursor.fetchall()
-    else:
-        idea_pool = []
-        history = []
+    history = cursor.fetchall()
 
     cursor.close()
     db.close()
@@ -142,31 +148,55 @@ def logout():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-        role = request.form['role']
-        
-        # Password ko hash karna
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        role = request.form.get('role')
+        club_name = request.form.get('club_name')
+
+        # Password ko hash karna zaroori hai (Fixes Invalid Salt Error)
+        hashed_pw = generate_password_hash(password)
+
         db = get_db_connection()
-        cursor = db.cursor()
-        
+        cursor = db.cursor(dictionary=True)
+
         try:
-            query = "INSERT INTO users (username, email, password, role) VALUES (%s, %s, %s, %s)"
-            cursor.execute(query, (username, email, hashed_password, role))
+            # 1. Insert User with hashed password
+            cursor.execute("""
+                INSERT INTO users (username, email, password, role) 
+                VALUES (%s, %s, %s, %s)
+            """, (username, email, hashed_pw, role))
+            
+            new_user_id = cursor.lastrowid
+
+            # 2. If Admin, Create Club and Link
+            if role == 'admin' and club_name:
+                cursor.execute("""
+                    INSERT INTO clubs (club_name, creator_admin_id) 
+                    VALUES (%s, %s)
+                """, (club_name, new_user_id))
+                
+                new_club_id = cursor.lastrowid
+
+                # Link club to user
+                cursor.execute("""
+                    UPDATE users SET managed_club_id = %s WHERE user_id = %s
+                """, (new_club_id, new_user_id))
+
             db.commit()
-            flash('Registration Successful! Please Login.', 'success')
+            flash("Account created successfully! Please login.", "success")
             return redirect(url_for('login'))
+
         except Exception as e:
             db.rollback()
-            flash('Error: Username or Email already exists!', 'danger')
+            print(f"Registration Error: {e}")
+            flash("Error: Username or Email already exists.", "danger")
         finally:
             cursor.close()
             db.close()
-            
+
     return render_template('register.html')
+
 
 @app.route('/suggest_idea', methods=['GET', 'POST'])
 def suggest_idea():
@@ -193,72 +223,77 @@ def suggest_idea():
         except Exception as e:
             print(e)
             flash('Error submitting idea.', 'danger')
+            
 
     # Dropdown ke liye clubs fetch karna
     cursor.execute("SELECT club_id, club_name FROM clubs")
-    clubs = cursor.fetchall()
+    all_clubs = cursor.fetchall()
     
     cursor.close()
     db.close()
-    return render_template('suggest_idea.html', clubs=clubs)
+    return render_template('suggest_idea.html', clubs=all_clubs)
 
 @app.route('/vote/<int:idea_id>', methods=['POST'])
 def vote(idea_id):
     if 'logged_in' not in session:
-        return {"error": "Unauthorized"}, 401
+        return jsonify({"error": "Login required"}), 401
 
     user_id = session['user_id']
     db = get_db_connection()
     cursor = db.cursor(dictionary=True)
 
-    # Check if already voted
-    cursor.execute("SELECT * FROM votes WHERE user_id = %s AND idea_id = %s", (user_id, idea_id))
-    existing_vote = cursor.fetchone()
+    try:
+        # 1. Check if already voted
+        cursor.execute("SELECT * FROM votes WHERE user_id = %s AND idea_id = %s", (user_id, idea_id))
+        if cursor.fetchone():
+            cursor.execute("DELETE FROM votes WHERE user_id = %s AND idea_id = %s", (user_id, idea_id))
+        else:
+            cursor.execute("INSERT INTO votes (user_id, idea_id) VALUES (%s, %s)", (user_id, idea_id))
 
-    if existing_vote:
-        # Unvote logic
-        cursor.execute("DELETE FROM votes WHERE user_id = %s AND idea_id = %s", (user_id, idea_id))
-        action = "unvoted"
-    else:
-        # Vote logic
-        cursor.execute("INSERT INTO votes (user_id, idea_id) VALUES (%s, %s)", (user_id, idea_id))
-        action = "voted"
+        db.commit()
 
-    db.commit()
-    
-    # New vote count fetch karo
-    cursor.execute("SELECT COUNT(*) as count FROM votes WHERE idea_id = %s", (idea_id,))
-    vote_count = cursor.fetchone()['count']
-    
-    cursor.close()
-    db.close()
+        # 2. Recalculate total votes for this idea from the votes table
+        cursor.execute("SELECT COUNT(*) as total FROM votes WHERE idea_id = %s", (idea_id,))
+        new_count = cursor.fetchone()['total']
 
-    return {"action": action, "count": vote_count}
+        # 3. Update the ideas table so the marketplace shows the right number
+        cursor.execute("UPDATE ideas SET vote_total = %s WHERE idea_id = %s", (new_count, idea_id))
+        db.commit()
 
+        return jsonify({"new_count": new_count})
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        db.close()
 @app.route('/select_idea/<int:idea_id>', methods=['POST'])
 def select_idea(idea_id):
     if 'logged_in' not in session or session['role'] != 'admin':
-        return {"error": "Unauthorized"}, 401
+        return redirect(url_for('login'))
 
+    user_id = session['user_id']
     db = get_db_connection()
     cursor = db.cursor()
 
     try:
-        # 1. Update Idea status
+        # 1. Idea ka status badal kar 'selected' karo
         cursor.execute("UPDATE ideas SET status = 'selected' WHERE idea_id = %s", (idea_id,))
-        
-        # 2. Add to Selected Events table
-        # Aap chahein toh yahan volunteer_limit default 10 rakh sakte hain
+
+        # 2. Selected events table mein entry dalo
+        # Note: Humein created_at manually dalne ki zaroorat nahi agar SQL mein DEFAULT CURRENT_TIMESTAMP set hai
         cursor.execute("""
-            INSERT INTO selected_events (idea_id, admin_id, volunteer_limit) 
-            VALUES (%s, %s, %s)
-        """, (idea_id, session['user_id'], 10))
-        
+            INSERT INTO selected_events (idea_id, admin_id, event_status) 
+            VALUES (%s, %s, 'upcoming')
+        """, (idea_id, user_id))
+
         db.commit()
-        flash("Idea Selected! It's now an official event.", "success")
+        flash("Idea successfully selected and launched!", "success")
     except Exception as e:
         db.rollback()
-        flash("Error selecting idea.", "danger")
+        print(f"Error selecting idea: {e}")
+        flash("Something went wrong.", "danger")
     finally:
         cursor.close()
         db.close()
