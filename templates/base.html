@@ -20,8 +20,72 @@
         </div>
     </nav>
 
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div id="flash-container" style="position: fixed; top: 80px; right: 20px; z-index: 9999; max-width: 400px;">
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}" style="
+                        background: {% if category == 'success' %}#dcfce7{% elif category == 'danger' %}#fee2e2{% elif category == 'warning' %}#fef9c3{% else %}#e0e7ff{% endif %};
+                        color: {% if category == 'success' %}#166534{% elif category == 'danger' %}#991b1b{% elif category == 'warning' %}#854d0e{% else %}#1e40af{% endif %};
+                        padding: 16px 20px;
+                        border-radius: 12px;
+                        margin-bottom: 10px;
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                        border-left: 4px solid {% if category == 'success' %}#16a34a{% elif category == 'danger' %}#dc2626{% elif category == 'warning' %}#ca8a04{% else %}#3b82f6{% endif %};
+                        font-weight: 600;
+                        animation: slideIn 0.3s ease-out;
+                        cursor: pointer;
+                    " onclick="this.style.animation='slideOut 0.3s ease-out'; setTimeout(() => this.remove(), 300);">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
+
+    <script>
+        // Auto-dismiss flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 300);
+                }, 5000);
+            });
+        });
+    </script>
+
     <div class="main-body">
         {% block content %}{% endblock %}
     </div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>

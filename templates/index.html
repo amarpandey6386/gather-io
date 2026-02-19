@@ -36,7 +36,7 @@
         <div class="idea-card" style="background: white; border-radius: 20px; padding: 30px; border: 1px solid rgba(0,0,0,0.05); box-shadow: var(--card-shadow); transition: 0.3s;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
                 <span style="background: var(--primary-light); color: var(--primary); padding: 5px 15px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">{{ idea.category }}</span>
-                <span style="color: var(--secondary); font-size: 0.9rem; font-weight: 600;">⚡ {{ idea.vote_total }}</span>
+                <span class="vote-count" style="color: var(--secondary); font-size: 0.9rem; font-weight: 600;">⚡ {{ idea.vote_total }}</span>
             </div>
             
             <h3 style="font-size: 1.3rem; margin-bottom: 12px; font-weight: 700;">{{ idea.title }}</h3>
@@ -47,8 +47,8 @@
                     <small style="color: #94a3b8; display: block;">Target Club</small>
                     <span style="font-weight: 600; font-size: 0.9rem;">{{ idea.club_name }}</span>
                 </div>
-                <button onclick="handleVote({{ idea.idea_id }})" class="btn-vote" style="background: var(--primary-light); border: none; padding: 10px 18px; border-radius: 12px; color: var(--primary); font-weight: 700; cursor: pointer;">
-                    Vote
+                <button onclick="handleVote({{ idea.idea_id }}, event)" class="btn-vote" style="background: {% if idea.user_voted %}var(--primary){% else %}var(--primary-light){% endif %}; border: none; padding: 10px 18px; border-radius: 12px; color: {% if idea.user_voted %}white{% else %}var(--primary){% endif %}; font-weight: 700; cursor: pointer; transition: all 0.3s;">
+                    {% if idea.user_voted %}Voted ✓{% else %}Vote{% endif %}
                 </button>
             </div>
         </div>

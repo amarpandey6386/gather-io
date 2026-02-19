@@ -1,11 +1,31 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from database_helper import get_db_connection
 from flask_bcrypt import Bcrypt
 from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
 app = Flask(__name__)
-app.secret_key = 'super_secret_key_gather_io' # Session ke liye zaroori hai
+app.secret_key = os.getenv('SECRET_KEY', 'super_secret_key_gather_io')  # Use env variable in production
 bcrypt = Bcrypt(app)
+
+# Allowed email domains for registration
+ALLOWED_EMAIL_DOMAINS = ['cuchd.in']  # Add more domains here if needed
+
+def is_valid_university_email(email):
+    """Check if email belongs to allowed university domains"""
+    if not email or '@' not in email:
+        return False
+    domain = email.split('@')[1].lower()
+    return domain in ALLOWED_EMAIL_DOMAINS
+
+# Prevent caching of authenticated pages
+@app.after_request
+def add_header(response):
+    if 'logged_in' in session:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, private'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 @app.route('/')
 def index():
@@ -58,8 +78,10 @@ def login():
             
             flash(f"Welcome back, {user['username']}!", "success")
             return redirect(url_for('index'))
+        elif not user:
+            flash("No account found with this email. Please register first.", "danger")
         else:
-            flash("Invalid email or password. Please try again.", "danger")
+            flash("Incorrect password. Please try again.", "danger")
 
     return render_template('login.html')
 
@@ -79,9 +101,23 @@ def student_dashboard():
         """, (session['user_id'],))
         
         my_ideas = cursor.fetchall()
+        
+        # Fetch unread notifications
+        cursor.execute("""
+            SELECT n.*, i.title as event_title
+            FROM notifications n
+            JOIN selected_events s ON n.event_id = s.event_id
+            JOIN ideas i ON s.idea_id = i.idea_id
+            WHERE n.user_id = %s AND n.is_read = FALSE
+            ORDER BY n.created_at DESC
+            LIMIT 10
+        """, (session['user_id'],))
+        
+        notifications = cursor.fetchall()
+        
         cursor.close()
         db.close()
-        return render_template('student_dash.html', ideas=my_ideas)
+        return render_template('student_dash.html', ideas=my_ideas, notifications=notifications)
     return redirect(url_for('login'))
 
 @app.route('/admin_dashboard')
@@ -93,57 +129,66 @@ def admin_dashboard():
     db = get_db_connection()
     cursor = db.cursor(dictionary=True)
 
-    # 1. Admin ka data fetch karein
-    cursor.execute("SELECT managed_club_id, username FROM users WHERE user_id = %s", (user_id,))
-    admin_data = cursor.fetchone()
-    
-    # DEBUG: Terminal mein check karne ke liye
-    print(f"--- DEBUG ADMIN --- ID: {user_id}, Data: {admin_data}")
+    try:
+        # 1. Admin ka data fetch karein
+        cursor.execute("SELECT managed_club_id, username FROM users WHERE user_id = %s", (user_id,))
+        admin_data = cursor.fetchone()
 
-    if not admin_data or admin_data['managed_club_id'] is None:
+        if not admin_data or admin_data['managed_club_id'] is None:
+            cursor.close()
+            db.close()
+            flash("Your account is not linked to any club. Please contact administrator.", "danger")
+            return redirect(url_for('index'))
+
+        club_id = admin_data['managed_club_id']
+
+        # 2. Club Info fetch karein
+        cursor.execute("SELECT club_name FROM clubs WHERE club_id = %s", (club_id,))
+        club_info = cursor.fetchone()
+        session['club_name'] = club_info['club_name'] if club_info else "Assigned Club"
+
+        # 3. IDEA POOL: Student suggestions (sirf is club ke liye)
+        cursor.execute("""
+            SELECT i.*, u.username as creator_name, 
+            COALESCE(COUNT(v.vote_id), 0) as vote_total
+            FROM ideas i 
+            JOIN users u ON i.creator_id = u.user_id 
+            LEFT JOIN votes v ON i.idea_id = v.idea_id
+            WHERE i.target_club_id = %s AND i.status != 'selected'
+            GROUP BY i.idea_id, i.title, i.description, i.category, i.creator_id, i.target_club_id, i.status, i.created_at, i.vote_total, u.username
+            ORDER BY vote_total DESC
+        """, (club_id,))
+        idea_pool = cursor.fetchall()
+
+        # 4. HISTORY: Pehle se select kiye huye events
+        cursor.execute("""
+            SELECT i.title, i.category, s.event_status, s.created_at, s.event_id
+            FROM selected_events s
+            JOIN ideas i ON s.idea_id = i.idea_id
+            WHERE s.admin_id = %s
+            ORDER BY s.created_at DESC
+        """, (user_id,))
+        history = cursor.fetchall()
+
         cursor.close()
         db.close()
-        # Ek pyara sa error message page par hi dikhane ke liye
-        return f"<h1>Setup Incomplete</h1><p>Bhai, database mein user <b>{session['username']}</b> ko abhi tak koi club assign nahi hua hai. MySQL mein <code>managed_club_id</code> set karo.</p>"
-
-    club_id = admin_data['managed_club_id']
-
-    # 2. Club Info fetch karein
-    cursor.execute("SELECT club_name FROM clubs WHERE club_id = %s", (club_id,))
-    club_info = cursor.fetchone()
-    session['club_name'] = club_info['club_name'] if club_info else "Assigned Club"
-
-    # 3. IDEA POOL: Student suggestions (sirf is club ke liye)
-    cursor.execute("""
-        SELECT i.*, u.username as creator_name, 
-        COUNT(v.idea_id) as vote_total
-        FROM ideas i 
-        JOIN users u ON i.creator_id = u.user_id 
-        LEFT JOIN votes v ON i.idea_id = v.idea_id
-        WHERE i.target_club_id = %s AND i.status != 'selected'
-        ORDER BY i.vote_total DESC
-    """, (club_id,))
-    idea_pool = cursor.fetchall()
-
-    # 4. HISTORY: Pehle se select kiye huye events
-    cursor.execute("""
-        SELECT i.title, i.category, s.event_status, s.created_at 
-        FROM selected_events s
-        JOIN ideas i ON s.idea_id = i.idea_id
-        WHERE s.admin_id = %s
-        ORDER BY s.created_at DESC
-    """, (user_id,))
-    history = cursor.fetchall()
-
-    cursor.close()
-    db.close()
-    return render_template('admin_dash.html', trending=idea_pool, history=history)
+        return render_template('admin_dash.html', trending=idea_pool, history=history)
+    
+    except Exception as e:
+        print(f"Admin Dashboard Error: {e}")
+        flash("Error loading dashboard. Please try again.", "danger")
+        return redirect(url_for('index'))
 
 @app.route('/logout')
 def logout():
     session.clear()
     flash('You are now logged out', 'info')
-    return redirect(url_for('login'))
+    response = redirect(url_for('login'))
+    # Prevent browser from caching authenticated pages
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -153,6 +198,11 @@ def register():
         password = request.form.get('password')
         role = request.form.get('role')
         club_name = request.form.get('club_name')
+
+        # Validate university email domain
+        if not is_valid_university_email(email):
+            flash(f"Please use a valid university email address (@cuchd.in)", "danger")
+            return render_template('register.html')
 
         # Password ko hash karna zaroori hai (Fixes Invalid Salt Error)
         hashed_pw = generate_password_hash(password)
@@ -200,7 +250,7 @@ def register():
 
 @app.route('/suggest_idea', methods=['GET', 'POST'])
 def suggest_idea():
-    if 'logged_in' not in session or session['role'] != 'student':
+    if 'logged_in' not in session:
         return redirect(url_for('login'))
 
     db = get_db_connection()
@@ -245,10 +295,16 @@ def vote(idea_id):
     try:
         # 1. Check if already voted
         cursor.execute("SELECT * FROM votes WHERE user_id = %s AND idea_id = %s", (user_id, idea_id))
-        if cursor.fetchone():
+        existing_vote = cursor.fetchone()
+        
+        if existing_vote:
+            # Remove vote (unvote)
             cursor.execute("DELETE FROM votes WHERE user_id = %s AND idea_id = %s", (user_id, idea_id))
+            action = 'unvoted'
         else:
+            # Add vote
             cursor.execute("INSERT INTO votes (user_id, idea_id) VALUES (%s, %s)", (user_id, idea_id))
+            action = 'voted'
 
         db.commit()
 
@@ -260,7 +316,7 @@ def vote(idea_id):
         cursor.execute("UPDATE ideas SET vote_total = %s WHERE idea_id = %s", (new_count, idea_id))
         db.commit()
 
-        return jsonify({"new_count": new_count})
+        return jsonify({"count": new_count, "action": action})
 
     except Exception as e:
         db.rollback()
@@ -268,6 +324,7 @@ def vote(idea_id):
     finally:
         cursor.close()
         db.close()
+
 @app.route('/select_idea/<int:idea_id>', methods=['POST'])
 def select_idea(idea_id):
     if 'logged_in' not in session or session['role'] != 'admin':
@@ -275,7 +332,7 @@ def select_idea(idea_id):
 
     user_id = session['user_id']
     db = get_db_connection()
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
 
     try:
         # 1. Idea ka status badal kar 'selected' karo
@@ -299,6 +356,122 @@ def select_idea(idea_id):
         db.close()
 
     return redirect(url_for('admin_dashboard'))
+
+@app.route('/notify_event/<int:event_id>', methods=['POST'])
+def notify_event(event_id):
+    if 'logged_in' not in session or session['role'] != 'admin':
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        # Get event details
+        cursor.execute("""
+            SELECT i.title, i.idea_id, i.target_club_id
+            FROM selected_events s
+            JOIN ideas i ON s.idea_id = i.idea_id
+            WHERE s.event_id = %s AND s.admin_id = %s
+        """, (event_id, session['user_id']))
+        
+        event = cursor.fetchone()
+        
+        if not event:
+            return jsonify({"error": "Event not found"}), 404
+
+        # Get ALL students (not just voters)
+        cursor.execute("""
+            SELECT user_id
+            FROM users
+            WHERE role = 'student'
+        """)
+        
+        students = cursor.fetchall()
+        
+        # Create notification message
+        message = f"🎉 New Event Alert! '{event['title']}' is now live and ready for registration. Check it out!"
+        
+        # Insert notifications for all students
+        notification_count = 0
+        for student in students:
+            # Check if notification already exists to avoid duplicates
+            cursor.execute("""
+                SELECT notification_id FROM notifications
+                WHERE user_id = %s AND event_id = %s
+            """, (student['user_id'], event_id))
+            
+            if not cursor.fetchone():
+                cursor.execute("""
+                    INSERT INTO notifications (user_id, event_id, message)
+                    VALUES (%s, %s, %s)
+                """, (student['user_id'], event_id, message))
+                notification_count += 1
+        
+        db.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": f"Notification sent to {notification_count} student(s)",
+            "count": notification_count
+        })
+    
+    except Exception as e:
+        db.rollback()
+        print(f"Notify Error: {e}")
+        return jsonify({"error": "Failed to send notifications"}), 500
+    finally:
+        cursor.close()
+        db.close()
+
+@app.route('/mark_notification_read/<int:notification_id>', methods=['POST'])
+def mark_notification_read(notification_id):
+    if 'logged_in' not in session:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db = get_db_connection()
+    cursor = db.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE notifications 
+            SET is_read = TRUE 
+            WHERE notification_id = %s AND user_id = %s
+        """, (notification_id, session['user_id']))
+        
+        db.commit()
+        return jsonify({"success": True})
+    
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        db.close()
+
+@app.route('/mark_all_notifications_read', methods=['POST'])
+def mark_all_notifications_read():
+    if 'logged_in' not in session:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db = get_db_connection()
+    cursor = db.cursor()
+
+    try:
+        cursor.execute("""
+            UPDATE notifications 
+            SET is_read = TRUE 
+            WHERE user_id = %s AND is_read = FALSE
+        """, (session['user_id'],))
+        
+        db.commit()
+        return jsonify({"success": True})
+    
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        db.close()
 
 @app.route('/active_events')
 def active_events():
@@ -330,7 +503,7 @@ def join_event(event_id, reg_type):
 
     user_id = session['user_id']
     db = get_db_connection()
-    cursor = db.cursor()
+    cursor = db.cursor(dictionary=True)
 
     try:
         # Check if already registered

@@ -3,14 +3,63 @@
 {% block content %}
 <div style="min-height: 90vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at top right, #e0e7ff, #f1f5f9); padding: 40px 20px;">
     
-    <div style="background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow); width: 100%; max-width: 480px; animation: fadeInUp 0.6s ease-out;">
+    <!-- Step 1: Role Selection -->
+    <div id="roleSelection" style="max-width: 900px; width: 100%;">
+        <div style="text-align: center; margin-bottom: 50px;">
+            <h2 style="font-size: 2.5rem; font-weight: 800; color: #1e293b; margin-bottom: 12px;">Join Gather.io</h2>
+            <p style="color: var(--secondary); font-size: 1.1rem;">Choose how you want to participate</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; max-width: 800px; margin: 0 auto;">
+            <!-- Student Card -->
+            <div onclick="selectRole('student')" class="role-card" style="background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow); cursor: pointer; transition: all 0.3s; border: 3px solid transparent; text-align: center;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">🎓</div>
+                <h3 style="font-size: 1.5rem; font-weight: 800; color: #1e293b; margin-bottom: 12px;">I'm a Student</h3>
+                <p style="color: var(--secondary); font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;">
+                    Suggest event ideas, vote for your favorites, and participate in campus activities.
+                </p>
+                <ul style="text-align: left; color: var(--secondary); font-size: 0.9rem; list-style: none; padding: 0;">
+                    <li style="margin-bottom: 8px;">✓ Propose event ideas</li>
+                    <li style="margin-bottom: 8px;">✓ Vote on suggestions</li>
+                    <li style="margin-bottom: 8px;">✓ Join events as volunteer</li>
+                </ul>
+            </div>
+
+            <!-- Admin Card -->
+            <div onclick="selectRole('admin')" class="role-card" style="background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow); cursor: pointer; transition: all 0.3s; border: 3px solid transparent; text-align: center;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">👔</div>
+                <h3 style="font-size: 1.5rem; font-weight: 800; color: #1e293b; margin-bottom: 12px;">I'm a Club Admin</h3>
+                <p style="color: var(--secondary); font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;">
+                    Manage your club, review suggestions, and launch events for your community.
+                </p>
+                <ul style="text-align: left; color: var(--secondary); font-size: 0.9rem; list-style: none; padding: 0;">
+                    <li style="margin-bottom: 8px;">✓ Manage club activities</li>
+                    <li style="margin-bottom: 8px;">✓ Review student ideas</li>
+                    <li style="margin-bottom: 8px;">✓ Launch events</li>
+                </ul>
+            </div>
+        </div>
+
+        <p style="text-align: center; margin-top: 40px; color: var(--secondary); font-size: 0.95rem;">
+            Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary); font-weight: 700; text-decoration: none;">Sign In</a>
+        </p>
+    </div>
+
+    <!-- Step 2: Student Registration Form -->
+    <div id="studentForm" style="display: none; background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow); width: 100%; max-width: 480px; animation: fadeInUp 0.4s ease-out;">
+        <button onclick="backToRoleSelection()" style="background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer; margin-bottom: 20px; font-size: 0.9rem;">
+            ← Back
+        </button>
         
-        <div style="text-align: center; margin-bottom: 35px;">
-            <h2 style="font-size: 2rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Create Account</h2>
-            <p style="color: var(--secondary); font-size: 0.95rem;">Join the university event community today.</p>
+        <div style="text-align: center; margin-bottom: 30px;">
+            <div style="font-size: 3rem; margin-bottom: 15px;">🎓</div>
+            <h2 style="font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Student Registration</h2>
+            <p style="color: var(--secondary); font-size: 0.9rem;">Create your student account</p>
         </div>
 
         <form method="POST" action="{{ url_for('register') }}">
+            <input type="hidden" name="role" value="student">
+            
             <div style="margin-bottom: 18px;">
                 <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">Username</label>
                 <input type="text" name="username" placeholder="johndoe123" required 
@@ -19,73 +68,118 @@
             </div>
 
             <div style="margin-bottom: 18px;">
-                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">Email Address</label>
-                <input type="email" name="email" placeholder="name@university.edu" required 
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">University Email</label>
+                <input type="email" name="email" placeholder="yourname@cuchd.in" required 
+                       style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                       onfocus="this.style.borderColor='var(--primary)'">
+                <small style="display: block; margin-top: 6px; color: #64748b; font-size: 0.75rem;">
+                    ⚠️ Only @cuchd.in email addresses are allowed
+                </small>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">Password</label>
+                <input type="password" name="password" placeholder="••••••••" required minlength="6"
+                       style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                       onfocus="this.style.borderColor='var(--primary)'">
+                <small style="display: block; margin-top: 6px; color: #64748b; font-size: 0.75rem;">
+                    Minimum 6 characters
+                </small>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; border: none; padding: 16px; font-size: 1rem; font-weight: 700; border-radius: 14px; cursor: pointer;">
+                Create Student Account
+            </button>
+        </form>
+    </div>
+
+    <!-- Step 3: Admin Registration Form -->
+    <div id="adminForm" style="display: none; background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow); width: 100%; max-width: 480px; animation: fadeInUp 0.4s ease-out;">
+        <button onclick="backToRoleSelection()" style="background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer; margin-bottom: 20px; font-size: 0.9rem;">
+            ← Back
+        </button>
+        
+        <div style="text-align: center; margin-bottom: 30px;">
+            <div style="font-size: 3rem; margin-bottom: 15px;">👔</div>
+            <h2 style="font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Club Admin Registration</h2>
+            <p style="color: var(--secondary); font-size: 0.9rem;">Create your club admin account</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('register') }}">
+            <input type="hidden" name="role" value="admin">
+            
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">Username</label>
+                <input type="text" name="username" placeholder="johndoe123" required 
                        style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
                        onfocus="this.style.borderColor='var(--primary)'">
             </div>
 
             <div style="margin-bottom: 18px;">
-                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">I am registering as a...</label>
-                <select name="role" id="roleSelect" onchange="toggleClubInput()" required
-                        style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; background: #fff; cursor: pointer; font-family: inherit; font-weight: 600; color: #1e293b;">
-                    <option value="student">Student (I want to vote & suggest)</option>
-                    <option value="admin">Club Admin (I want to manage events)</option>
-                </select>
-            </div>
-
-            <div id="clubInputGroup" style="display: none; margin-bottom: 18px; padding: 15px; background: #f8fafc; border-radius: 15px; border: 1px dashed var(--primary); animation: slideDown 0.3s ease;">
-                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">Your Club Name</label>
-                <input type="text" id="club_name" name="club_name" placeholder="e.g. Photography Club" 
-                       style="width: 100%; padding: 12px 16px; border-radius: 10px; border: 1.5px solid #cbd5e1; outline: none; box-sizing: border-box; font-family: inherit;">
-                <small style="display: block; margin-top: 8px; color: #64748b; font-size: 0.75rem;">This club will be created and assigned to you automatically.</small>
-            </div>
-
-            <div style="margin-bottom: 30px;">
-                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">Password</label>
-                <input type="password" name="password" placeholder="••••••••" required 
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">University Email</label>
+                <input type="email" name="email" placeholder="yourname@cuchd.in" required 
                        style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
                        onfocus="this.style.borderColor='var(--primary)'">
+                <small style="display: block; margin-top: 6px; color: #64748b; font-size: 0.75rem;">
+                    ⚠️ Only @cuchd.in email addresses are allowed
+                </small>
+            </div>
+
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: #475569;">Password</label>
+                <input type="password" name="password" placeholder="••••••••" required minlength="6"
+                       style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                       onfocus="this.style.borderColor='var(--primary)'">
+                <small style="display: block; margin-top: 6px; color: #64748b; font-size: 0.75rem;">
+                    Minimum 6 characters
+                </small>
+            </div>
+
+            <div style="margin-bottom: 25px; padding: 18px; background: #f8fafc; border-radius: 15px; border: 2px dashed var(--primary);">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; font-size: 0.85rem; color: var(--primary);">
+                    🎯 Your Club Name
+                </label>
+                <input type="text" name="club_name" placeholder="e.g. Photography Club, Tech Society" required 
+                       style="width: 100%; padding: 12px 16px; border-radius: 10px; border: 1.5px solid #cbd5e1; outline: none; box-sizing: border-box; font-family: inherit;">
+                <small style="display: block; margin-top: 8px; color: #64748b; font-size: 0.75rem;">
+                    This club will be created and assigned to you automatically
+                </small>
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; border: none; padding: 16px; font-size: 1rem; font-weight: 700; border-radius: 14px; cursor: pointer;">
-                Create Account
+                Create Admin Account
             </button>
         </form>
-
-        <p style="text-align: center; margin-top: 25px; color: var(--secondary); font-size: 0.9rem;">
-            Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary); font-weight: 700; text-decoration: none;">Sign In</a>
-        </p>
     </div>
 </div>
 
 <script>
-function toggleClubInput() {
-    const roleSelect = document.getElementById('roleSelect');
-    const clubGroup = document.getElementById('clubInputGroup');
-    const clubInput = document.getElementById('club_name');
-
-    if (roleSelect.value === 'admin') {
-        clubGroup.style.display = 'block';
-        clubInput.required = true;
+function selectRole(role) {
+    document.getElementById('roleSelection').style.display = 'none';
+    
+    if (role === 'student') {
+        document.getElementById('studentForm').style.display = 'block';
     } else {
-        clubGroup.style.display = 'none';
-        clubInput.required = false;
-        clubInput.value = ''; // Reset if switched back
+        document.getElementById('adminForm').style.display = 'block';
     }
 }
 
-// Ensure correct state on page load
-window.onload = toggleClubInput;
+function backToRoleSelection() {
+    document.getElementById('roleSelection').style.display = 'block';
+    document.getElementById('studentForm').style.display = 'none';
+    document.getElementById('adminForm').style.display = 'none';
+}
 </script>
 
 <style>
+.role-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: var(--primary) !important;
+}
+
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 </style>

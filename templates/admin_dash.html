@@ -25,19 +25,29 @@
         </div>
         <div style="background: white; padding: 25px; border-radius: 20px; box-shadow: var(--card-shadow); border: 1px solid rgba(0,0,0,0.02);">
             <small style="color: var(--secondary); font-weight: 700;">TOTAL VOTES RCVD</small>
-            <h2 style="margin: 10px 0 0; font-size: 2rem; color: #f59e0b;">{{ trending|sum(attribute='vote_total') }}</h2>
+            <h2 style="margin: 10px 0 0; font-size: 2rem; color: #f59e0b;">
+                {% set total_votes = namespace(count=0) %}
+                {% for idea in trending %}
+                    {% set total_votes.count = total_votes.count + (idea.vote_total or 0) %}
+                {% endfor %}
+                {{ total_votes.count }}
+            </h2>
         </div>
     </div>
 
     <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
-        📥 Incoming Suggestions <span style="background: #fee2e2; color: #ef4444; font-size: 0.7rem; padding: 4px 10px; border-radius: 50px;">ACTION REQUIRED</span>
+        📥 Incoming Suggestions 
+        {% if trending|length > 0 %}
+        <span style="background: #fee2e2; color: #ef4444; font-size: 0.7rem; padding: 4px 10px; border-radius: 50px;">ACTION REQUIRED</span>
+        {% endif %}
     </h3>
 
+    {% if trending|length > 0 %}
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; margin-bottom: 60px;">
         {% for idea in trending %}
         <div style="background: white; border-radius: 24px; padding: 30px; box-shadow: var(--card-shadow); border: 1px solid rgba(0,0,0,0.03); transition: 0.3s;" class="admin-card">
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem;">👍 {{ idea.vote_total }} VOTES</span>
+                <span style="color: var(--primary); font-weight: 800; font-size: 0.8rem;">👍 {{ idea.vote_total or 0 }} VOTES</span>
                 <small style="color: var(--secondary);">By {{ idea.creator_name }}</small>
             </div>
             <h4 style="font-size: 1.2rem; margin: 0 0 10px; font-weight: 700;">{{ idea.title }}</h4>
@@ -51,8 +61,16 @@
         </div>
         {% endfor %}
     </div>
+    {% else %}
+    <div style="text-align: center; padding: 80px 20px; background: white; border-radius: 20px; border: 2px dashed #e2e8f0; margin-bottom: 60px;">
+        <div style="font-size: 4rem; margin-bottom: 20px;">📭</div>
+        <h3 style="color: var(--secondary); font-weight: 700; margin-bottom: 10px;">No Pending Suggestions</h3>
+        <p style="color: var(--secondary);">Students haven't submitted any ideas for your club yet.</p>
+    </div>
+    {% endif %}
 
     <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 25px;">📋 Managed Events History</h3>
+    {% if history|length > 0 %}
     <div style="background: white; border-radius: 20px; overflow: hidden; box-shadow: var(--card-shadow); border: 1px solid rgba(0,0,0,0.03);">
         <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead style="background: #f8fafc;">
@@ -74,16 +92,106 @@
                         </span>
                     </td>
                     <td style="padding: 15px 20px;">
-                        <button style="background: none; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--primary);">📢 Notify</button>
+                        <button onclick="notifyStudents({{ event.event_id }})" class="notify-btn-{{ event.event_id }}" style="background: none; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--primary); transition: all 0.3s;">📢 Notify</button>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 20px; border: 2px dashed #e2e8f0;">
+        <div style="font-size: 3.5rem; margin-bottom: 15px;">📅</div>
+        <h3 style="color: var(--secondary); font-weight: 700; margin-bottom: 10px;">No Events Yet</h3>
+        <p style="color: var(--secondary);">You haven't launched any events yet. Approve suggestions to get started!</p>
+    </div>
+    {% endif %}
 </div>
 
 <style>
     .admin-card:hover { transform: translateY(-5px); }
 </style>
+
+<script>
+function notifyStudents(eventId) {
+    const btn = document.querySelector(`.notify-btn-${eventId}`);
+    const originalText = btn.innerHTML;
+    
+    // Disable button and show loading
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Sending...';
+    btn.style.opacity = '0.6';
+    
+    fetch(`/notify_event/${eventId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success state
+            btn.innerHTML = '✓ Sent';
+            btn.style.background = '#dcfce7';
+            btn.style.color = '#166534';
+            btn.style.borderColor = '#16a34a';
+            
+            // Show flash-like notification
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                background: #dcfce7;
+                color: #166534;
+                padding: 16px 20px;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                border-left: 4px solid #16a34a;
+                font-weight: 600;
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = data.message;
+            document.body.appendChild(notification);
+            
+            // Remove notification after 5 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+            
+            // Reset button after 3 seconds
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.background = 'none';
+                btn.style.color = 'var(--primary)';
+                btn.style.borderColor = '#e2e8f0';
+            }, 3000);
+        } else {
+            // Show error
+            btn.innerHTML = '✗ Failed';
+            btn.style.color = '#dc2626';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }, 2000);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        btn.innerHTML = '✗ Error';
+        btn.style.color = '#dc2626';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        }, 2000);
+    });
+}
+</script>
 {% endblock %}
