@@ -55,4 +55,65 @@
         {% endfor %}
     </div>
 </div>
+
+{% if not session.get('logged_in') %}
+<!-- How It Works Section -->
+<div class="container" style="padding: 80px 8%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-top: 60px;">
+    <div style="text-align: center; margin-bottom: 60px;">
+        <h2 style="font-size: 2.5rem; font-weight: 800; color: white; margin-bottom: 15px;">How EventHub Works</h2>
+        <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Transform your campus event ideas into reality in just a few simple steps</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 40px; max-width: 1200px; margin: 0 auto;">
+        <!-- Step 1 -->
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 35px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 2.5rem; color: white; font-weight: 800;">1</div>
+            <h3 style="font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 15px;">Sign Up</h3>
+            <p style="color: #64748b; line-height: 1.6; font-size: 0.95rem;">Create your free account using your university email (@cuchd.in). Choose to join as a student or club admin.</p>
+        </div>
+
+        <!-- Step 2 -->
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 35px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 2.5rem; color: white; font-weight: 800;">2</div>
+            <h3 style="font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 15px;">Suggest & Vote</h3>
+            <p style="color: #64748b; line-height: 1.6; font-size: 0.95rem;">Students propose event ideas and vote for their favorites. The most popular ideas rise to the top of the marketplace.</p>
+        </div>
+
+        <!-- Step 3 -->
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 35px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 2.5rem; color: white; font-weight: 800;">3</div>
+            <h3 style="font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 15px;">Clubs Review</h3>
+            <p style="color: #64748b; line-height: 1.6; font-size: 0.95rem;">Club admins review trending ideas, select the best ones, and add event details like venue, date, and time.</p>
+        </div>
+
+        <!-- Step 4 -->
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 35px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 2.5rem; color: white; font-weight: 800;">4</div>
+            <h3 style="font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 15px;">Event Goes Live</h3>
+            <p style="color: #64748b; line-height: 1.6; font-size: 0.95rem;">When ready, admins launch the event live. All students get notified and can register to participate.</p>
+        </div>
+
+        <!-- Step 5 -->
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 35px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 2.5rem; color: white; font-weight: 800;">5</div>
+            <h3 style="font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 15px;">Join & Participate</h3>
+            <p style="color: #64748b; line-height: 1.6; font-size: 0.95rem;">Students register for events they're interested in. Track your participation and see your impact on campus life.</p>
+        </div>
+
+        <!-- Step 6 -->
+        <div style="background: rgba(255,255,255,0.95); border-radius: 20px; padding: 35px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+            <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 2.5rem; color: white; font-weight: 800;">6</div>
+            <h3 style="font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 15px;">Event Happens!</h3>
+            <p style="color: #64748b; line-height: 1.6; font-size: 0.95rem;">Attend the event and enjoy! After completion, events move to history where you can see your contributions.</p>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 60px;">
+        <a href="{{ url_for('register') }}" class="btn" style="background: white; color: #667eea; padding: 18px 45px; font-size: 1.1rem; font-weight: 700; border-radius: 12px; text-decoration: none; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            Start Your Journey Today →
+        </a>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

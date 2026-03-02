@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'super_secret_key_gather_io')  # Use env variable in production
+app.secret_key = os.getenv('SECRET_KEY', 'super_secret_key_eventhub')  # Use env variable in production
 bcrypt = Bcrypt(app)
 
 # Allowed email domains for registration
@@ -115,9 +115,39 @@ def student_dashboard():
         
         notifications = cursor.fetchall()
         
+        # Fetch upcoming events with details
+        cursor.execute("""
+            SELECT s.*, i.title, i.category, c.club_name,
+            (SELECT COUNT(*) FROM event_participants ep WHERE ep.event_id = s.event_id) as current_participants,
+            (SELECT COUNT(*) FROM event_participants ep WHERE ep.event_id = s.event_id AND ep.student_id = %s) as is_registered
+            FROM selected_events s
+            JOIN ideas i ON s.idea_id = i.idea_id
+            JOIN clubs c ON i.target_club_id = c.club_id
+            WHERE s.event_status = 'upcoming' AND s.registration_deadline >= CURDATE()
+            ORDER BY s.event_date ASC
+        """, (session['user_id'],))
+        
+        upcoming_events = cursor.fetchall()
+        
+        # Convert timedelta to time string for display
+        from datetime import timedelta
+        for event in upcoming_events:
+            if event.get('event_time') and isinstance(event['event_time'], timedelta):
+                total_seconds = int(event['event_time'].total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                # Convert to 12-hour format
+                period = 'AM' if hours < 12 else 'PM'
+                display_hours = hours % 12
+                if display_hours == 0:
+                    display_hours = 12
+                event['event_time_display'] = f"{display_hours:02d}:{minutes:02d} {period}"
+            else:
+                event['event_time_display'] = str(event.get('event_time', 'TBA'))
+        
         cursor.close()
         db.close()
-        return render_template('student_dash.html', ideas=my_ideas, notifications=notifications)
+        return render_template('student_dash.html', ideas=my_ideas, notifications=notifications, upcoming_events=upcoming_events)
     return redirect(url_for('login'))
 
 @app.route('/admin_dashboard')
@@ -130,7 +160,7 @@ def admin_dashboard():
     cursor = db.cursor(dictionary=True)
 
     try:
-        # 1. Admin ka data fetch karein
+        # 1. Fetch the admin data
         cursor.execute("SELECT managed_club_id, username FROM users WHERE user_id = %s", (user_id,))
         admin_data = cursor.fetchone()
 
@@ -142,12 +172,12 @@ def admin_dashboard():
 
         club_id = admin_data['managed_club_id']
 
-        # 2. Club Info fetch karein
+        # 2. Fetch the club info
         cursor.execute("SELECT club_name FROM clubs WHERE club_id = %s", (club_id,))
         club_info = cursor.fetchone()
         session['club_name'] = club_info['club_name'] if club_info else "Assigned Club"
 
-        # 3. IDEA POOL: Student suggestions (sirf is club ke liye)
+        # 3. IDEA POOL: Student suggestions
         cursor.execute("""
             SELECT i.*, u.username as creator_name, 
             COALESCE(COUNT(v.vote_id), 0) as vote_total
@@ -160,19 +190,50 @@ def admin_dashboard():
         """, (club_id,))
         idea_pool = cursor.fetchall()
 
-        # 4. HISTORY: Pehle se select kiye huye events
+        # 4. UPCOMING EVENTS: Events that haven't started yet
         cursor.execute("""
             SELECT i.title, i.category, s.event_status, s.created_at, s.event_id
             FROM selected_events s
             JOIN ideas i ON s.idea_id = i.idea_id
-            WHERE s.admin_id = %s
+            WHERE s.admin_id = %s AND s.event_status = 'upcoming'
+            ORDER BY s.created_at DESC
+        """, (user_id,))
+        upcoming_events = cursor.fetchall()
+
+        # 5. LIVE EVENTS: Events currently happening
+        cursor.execute("""
+            SELECT i.title, i.category, s.event_status, s.created_at, s.event_id,
+            (SELECT COUNT(*) FROM event_participants WHERE event_id = s.event_id) as participant_count
+            FROM selected_events s
+            JOIN ideas i ON s.idea_id = i.idea_id
+            WHERE s.admin_id = %s AND s.event_status = 'live'
+            ORDER BY s.created_at DESC
+        """, (user_id,))
+        live_events = cursor.fetchall()
+
+        # 6. HISTORY: Closed events
+        cursor.execute("""
+            SELECT i.title, i.category, s.event_status, s.created_at, s.event_id
+            FROM selected_events s
+            JOIN ideas i ON s.idea_id = i.idea_id
+            WHERE s.admin_id = %s AND s.event_status = 'closed'
             ORDER BY s.created_at DESC
         """, (user_id,))
         history = cursor.fetchall()
 
+        # 7. MEMBERSHIP REQUESTS: Pending requests for this club
+        cursor.execute("""
+            SELECT r.*, u.username, u.email
+            FROM club_membership_requests r
+            JOIN users u ON r.student_id = u.user_id
+            WHERE r.club_id = %s AND r.status = 'pending'
+            ORDER BY r.created_at DESC
+        """, (club_id,))
+        membership_requests = cursor.fetchall()
+
         cursor.close()
         db.close()
-        return render_template('admin_dash.html', trending=idea_pool, history=history)
+        return render_template('admin_dash.html', trending=idea_pool, upcoming_events=upcoming_events, live_events=live_events, history=history, membership_requests=membership_requests)
     
     except Exception as e:
         print(f"Admin Dashboard Error: {e}")
@@ -204,7 +265,7 @@ def register():
             flash(f"Please use a valid university email address (@cuchd.in)", "danger")
             return render_template('register.html')
 
-        # Password ko hash karna zaroori hai (Fixes Invalid Salt Error)
+        # Hash the password for secured authentication
         hashed_pw = generate_password_hash(password)
 
         db = get_db_connection()
@@ -325,8 +386,35 @@ def vote(idea_id):
         cursor.close()
         db.close()
 
-@app.route('/select_idea/<int:idea_id>', methods=['POST'])
+@app.route('/select_idea/<int:idea_id>', methods=['GET'])
 def select_idea(idea_id):
+    if 'logged_in' not in session or session['role'] != 'admin':
+        return redirect(url_for('login'))
+
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        # Get idea details
+        cursor.execute("SELECT * FROM ideas WHERE idea_id = %s", (idea_id,))
+        idea = cursor.fetchone()
+        
+        cursor.close()
+        db.close()
+        
+        if not idea:
+            flash("Idea not found", "danger")
+            return redirect(url_for('admin_dashboard'))
+        
+        return render_template('event_details_form.html', idea=idea)
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        flash("Something went wrong", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/launch_event/<int:idea_id>', methods=['POST'])
+def launch_event(idea_id):
     if 'logged_in' not in session or session['role'] != 'admin':
         return redirect(url_for('login'))
 
@@ -335,21 +423,28 @@ def select_idea(idea_id):
     cursor = db.cursor(dictionary=True)
 
     try:
-        # 1. Idea ka status badal kar 'selected' karo
+        # Get form data
+        venue = request.form.get('venue')
+        event_date = request.form.get('event_date')
+        event_time = request.form.get('event_time')
+        description = request.form.get('description')
+        max_participants = request.form.get('max_participants')
+        registration_deadline = request.form.get('registration_deadline')
+
+        # 1. Update idea status
         cursor.execute("UPDATE ideas SET status = 'selected' WHERE idea_id = %s", (idea_id,))
 
-        # 2. Selected events table mein entry dalo
-        # Note: Humein created_at manually dalne ki zaroorat nahi agar SQL mein DEFAULT CURRENT_TIMESTAMP set hai
+        # 2. Create event with details
         cursor.execute("""
-            INSERT INTO selected_events (idea_id, admin_id, event_status) 
-            VALUES (%s, %s, 'upcoming')
-        """, (idea_id, user_id))
+            INSERT INTO selected_events (idea_id, admin_id, event_status, event_venue, event_date, event_time, event_description, max_participants, registration_deadline) 
+            VALUES (%s, %s, 'upcoming', %s, %s, %s, %s, %s, %s)
+        """, (idea_id, user_id, venue, event_date, event_time, description, max_participants, registration_deadline))
 
         db.commit()
-        flash("Idea successfully selected and launched!", "success")
+        flash("Event launched successfully!", "success")
     except Exception as e:
         db.rollback()
-        print(f"Error selecting idea: {e}")
+        print(f"Error launching event: {e}")
         flash("Something went wrong.", "danger")
     finally:
         cursor.close()
@@ -368,7 +463,7 @@ def notify_event(event_id):
     try:
         # Get event details
         cursor.execute("""
-            SELECT i.title, i.idea_id, i.target_club_id
+            SELECT i.title, i.idea_id, i.target_club_id, s.event_status
             FROM selected_events s
             JOIN ideas i ON s.idea_id = i.idea_id
             WHERE s.event_id = %s AND s.admin_id = %s
@@ -378,6 +473,13 @@ def notify_event(event_id):
         
         if not event:
             return jsonify({"error": "Event not found"}), 404
+
+        # Change event status from 'upcoming' to 'live'
+        cursor.execute("""
+            UPDATE selected_events 
+            SET event_status = 'live' 
+            WHERE event_id = %s
+        """, (event_id,))
 
         # Get ALL students (not just voters)
         cursor.execute("""
@@ -389,7 +491,7 @@ def notify_event(event_id):
         students = cursor.fetchall()
         
         # Create notification message
-        message = f"🎉 New Event Alert! '{event['title']}' is now live and ready for registration. Check it out!"
+        message = f"🎉 Event LIVE NOW! '{event['title']}' has started. Join us!"
         
         # Insert notifications for all students
         notification_count = 0
@@ -411,7 +513,7 @@ def notify_event(event_id):
         
         return jsonify({
             "success": True,
-            "message": f"Notification sent to {notification_count} student(s)",
+            "message": f"Event is now LIVE! Notification sent to {notification_count} student(s)",
             "count": notification_count
         })
     
@@ -419,6 +521,42 @@ def notify_event(event_id):
         db.rollback()
         print(f"Notify Error: {e}")
         return jsonify({"error": "Failed to send notifications"}), 500
+    finally:
+        cursor.close()
+        db.close()
+
+@app.route('/close_event/<int:event_id>', methods=['POST'])
+def close_event(event_id):
+    if 'logged_in' not in session or session['role'] != 'admin':
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        # Verify admin owns this event
+        cursor.execute("""
+            SELECT event_id FROM selected_events
+            WHERE event_id = %s AND admin_id = %s
+        """, (event_id, session['user_id']))
+        
+        if not cursor.fetchone():
+            return jsonify({"error": "Unauthorized"}), 403
+
+        # Change event status to 'closed'
+        cursor.execute("""
+            UPDATE selected_events 
+            SET event_status = 'closed' 
+            WHERE event_id = %s
+        """, (event_id,))
+
+        db.commit()
+        return jsonify({"success": True, "message": "Event closed successfully"})
+    
+    except Exception as e:
+        db.rollback()
+        print(f"Close Event Error: {e}")
+        return jsonify({"error": "Failed to close event"}), 500
     finally:
         cursor.close()
         db.close()
@@ -444,6 +582,212 @@ def mark_notification_read(notification_id):
     except Exception as e:
         db.rollback()
         return jsonify({"error": str(e)}), 500
+    finally:
+        cursor.close()
+        db.close()
+
+@app.route('/clubs')
+def clubs():
+    if 'logged_in' not in session:
+        return redirect(url_for('login'))
+
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        # Get all clubs with member count
+        cursor.execute("""
+            SELECT c.*, u.username as admin_name,
+            (SELECT COUNT(*) FROM club_members cm WHERE cm.club_id = c.club_id) as member_count
+            FROM clubs c
+            LEFT JOIN users u ON c.creator_admin_id = u.user_id
+            ORDER BY c.club_name
+        """)
+        all_clubs = cursor.fetchall()
+
+        # If student, get their membership status for each club
+        if session['role'] == 'student':
+            for club in all_clubs:
+                # Check if already a member
+                cursor.execute("""
+                    SELECT member_id FROM club_members 
+                    WHERE student_id = %s AND club_id = %s
+                """, (session['user_id'], club['club_id']))
+                club['is_member'] = cursor.fetchone() is not None
+
+                # Check if request is pending
+                cursor.execute("""
+                    SELECT status FROM club_membership_requests 
+                    WHERE student_id = %s AND club_id = %s
+                """, (session['user_id'], club['club_id']))
+                request = cursor.fetchone()
+                club['request_status'] = request['status'] if request else None
+
+        cursor.close()
+        db.close()
+        return render_template('clubs.html', clubs=all_clubs)
+
+    except Exception as e:
+        print(f"Clubs Error: {e}")
+        flash("Error loading clubs", "danger")
+        return redirect(url_for('index'))
+
+@app.route('/request_club_membership/<int:club_id>', methods=['POST'])
+def request_club_membership(club_id):
+    if 'logged_in' not in session or session['role'] != 'student':
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db = get_db_connection()
+    cursor = db.cursor()
+
+    try:
+        message = request.json.get('message', '')
+
+        # Insert membership request
+        cursor.execute("""
+            INSERT INTO club_membership_requests (student_id, club_id, request_message)
+            VALUES (%s, %s, %s)
+        """, (session['user_id'], club_id, message))
+
+        db.commit()
+        return jsonify({"success": True, "message": "Membership request sent!"})
+
+    except Exception as e:
+        db.rollback()
+        print(f"Request Error: {e}")
+        return jsonify({"error": "Request already sent or failed"}), 500
+    finally:
+        cursor.close()
+        db.close()
+
+@app.route('/approve_membership/<int:request_id>', methods=['POST'])
+def approve_membership(request_id):
+    if 'logged_in' not in session or session['role'] != 'admin':
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        # Get request details
+        cursor.execute("""
+            SELECT r.*, c.creator_admin_id
+            FROM club_membership_requests r
+            JOIN clubs c ON r.club_id = c.club_id
+            WHERE r.request_id = %s
+        """, (request_id,))
+        
+        req = cursor.fetchone()
+        
+        if not req or req['creator_admin_id'] != session['user_id']:
+            return jsonify({"error": "Unauthorized"}), 403
+
+        # Update request status
+        cursor.execute("""
+            UPDATE club_membership_requests 
+            SET status = 'approved' 
+            WHERE request_id = %s
+        """, (request_id,))
+
+        # Add to club_members
+        cursor.execute("""
+            INSERT INTO club_members (student_id, club_id)
+            VALUES (%s, %s)
+        """, (req['student_id'], req['club_id']))
+
+        db.commit()
+        return jsonify({"success": True, "message": "Membership approved!"})
+
+    except Exception as e:
+        db.rollback()
+        print(f"Approve Error: {e}")
+        return jsonify({"error": "Failed to approve"}), 500
+    finally:
+        cursor.close()
+        db.close()
+
+@app.route('/reject_membership/<int:request_id>', methods=['POST'])
+def reject_membership(request_id):
+    if 'logged_in' not in session or session['role'] != 'admin':
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        # Get request details
+        cursor.execute("""
+            SELECT r.*, c.creator_admin_id
+            FROM club_membership_requests r
+            JOIN clubs c ON r.club_id = c.club_id
+            WHERE r.request_id = %s
+        """, (request_id,))
+        
+        req = cursor.fetchone()
+        
+        if not req or req['creator_admin_id'] != session['user_id']:
+            return jsonify({"error": "Unauthorized"}), 403
+
+        # Update request status
+        cursor.execute("""
+            UPDATE club_membership_requests 
+            SET status = 'rejected' 
+            WHERE request_id = %s
+        """, (request_id,))
+
+        db.commit()
+        return jsonify({"success": True, "message": "Membership rejected"})
+
+    except Exception as e:
+        db.rollback()
+        print(f"Reject Error: {e}")
+        return jsonify({"error": "Failed to reject"}), 500
+    finally:
+        cursor.close()
+        db.close()
+
+@app.route('/register_for_event/<int:event_id>', methods=['POST'])
+def register_for_event(event_id):
+    if 'logged_in' not in session or session['role'] != 'student':
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db = get_db_connection()
+    cursor = db.cursor(dictionary=True)
+
+    try:
+        data = request.json
+        student_name = data.get('name')
+        student_email = data.get('email')
+        student_phone = data.get('phone')
+        participation_type = data.get('type', 'participant')
+        additional_info = data.get('info', '')
+
+        # Check if event is full
+        cursor.execute("""
+            SELECT s.max_participants,
+            (SELECT COUNT(*) FROM event_participants WHERE event_id = %s) as current_count
+            FROM selected_events s
+            WHERE s.event_id = %s
+        """, (event_id, event_id))
+        
+        event_info = cursor.fetchone()
+        
+        if event_info and event_info['current_count'] >= event_info['max_participants']:
+            return jsonify({"error": "Event is full"}), 400
+
+        # Register participant
+        cursor.execute("""
+            INSERT INTO event_participants (event_id, student_id, student_name, student_email, student_phone, participation_type, additional_info)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (event_id, session['user_id'], student_name, student_email, student_phone, participation_type, additional_info))
+
+        db.commit()
+        return jsonify({"success": True, "message": "Registration successful!"})
+
+    except Exception as e:
+        db.rollback()
+        print(f"Registration Error: {e}")
+        return jsonify({"error": "Already registered or failed"}), 500
     finally:
         cursor.close()
         db.close()
@@ -495,6 +839,37 @@ def active_events():
     cursor.close()
     db.close()
     return render_template('active_events.html', events=active_events)
+
+@app.route('/submit_feedback', methods=['POST'])
+def submit_feedback():
+    try:
+        data = request.json
+        name = data.get('name')
+        email = data.get('email')
+        feedback_type = data.get('feedback_type')
+        message = data.get('message')
+        rating = data.get('rating', 5)
+        
+        # Get user_id if logged in
+        user_id = session.get('user_id', None)
+        
+        db = get_db_connection()
+        cursor = db.cursor()
+        
+        cursor.execute("""
+            INSERT INTO feedback (user_id, name, email, feedback_type, message, rating)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (user_id, name, email, feedback_type, message, rating))
+        
+        db.commit()
+        cursor.close()
+        db.close()
+        
+        return jsonify({"success": True, "message": "Feedback submitted successfully!"})
+    
+    except Exception as e:
+        print(f"Feedback Error: {e}")
+        return jsonify({"success": False, "error": "Failed to submit feedback"}), 500
 
 @app.route('/join_event/<int:event_id>/<string:reg_type>', methods=['POST'])
 def join_event(event_id, reg_type):

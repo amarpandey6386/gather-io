@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="padding: 40px 8%; min-height: 100vh;">
+    
+    <div style="max-width: 700px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 40px;">
+            <h1 style="font-size: 2.2rem; font-weight: 800; color: #1e293b; margin-bottom: 12px;">Launch Event</h1>
+            <p style="color: var(--secondary); font-size: 1rem;">Add event details for: <strong>{{ idea.title }}</strong></p>
+        </div>
+
+        <form method="POST" action="{{ url_for('launch_event', idea_id=idea.idea_id) }}" style="background: white; padding: 40px; border-radius: 24px; box-shadow: var(--card-shadow);">
+            
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; color: #475569;">Event Venue</label>
+                <input type="text" name="venue" placeholder="e.g., Main Auditorium, Room 101" required 
+                       style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                       onfocus="this.style.borderColor='var(--primary)'">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                <div>
+                    <label style="display: block; font-weight: 700; margin-bottom: 8px; color: #475569;">Event Date</label>
+                    <input type="date" name="event_date" required 
+                           style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                           onfocus="this.style.borderColor='var(--primary)'">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 700; margin-bottom: 8px; color: #475569;">Event Time</label>
+                    <input type="time" name="event_time" required 
+                           style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                           onfocus="this.style.borderColor='var(--primary)'">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; font-weight: 700; margin-bottom: 8px; color: #475569;">Event Description</label>
+                <textarea name="description" rows="4" placeholder="Describe the event, what to expect, dress code, etc." required
+                          style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; resize: vertical; transition: 0.3s;"
+                          onfocus="this.style.borderColor='var(--primary)'"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+                <div>
+                    <label style="display: block; font-weight: 700; margin-bottom: 8px; color: #475569;">Max Participants</label>
+                    <input type="number" name="max_participants" value="100" min="1" required 
+                           style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                           onfocus="this.style.borderColor='var(--primary)'">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 700; margin-bottom: 8px; color: #475569;">Registration Deadline</label>
+                    <input type="date" name="registration_deadline" required 
+                           style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1.5px solid #e2e8f0; outline: none; box-sizing: border-box; font-family: inherit; transition: 0.3s;"
+                           onfocus="this.style.borderColor='var(--primary)'">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 35px;">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn" style="flex: 1; text-align: center; padding: 16px; border-radius: 12px; background: #f1f5f9; color: #475569; text-decoration: none; font-weight: 700;">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" style="flex: 2; border: none; padding: 16px; border-radius: 12px; cursor: pointer; font-weight: 700;">
+                    Launch Event 🚀
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

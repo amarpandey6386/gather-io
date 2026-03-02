@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gather.io | University Event Marketplace</title>
+    <title>EventHub | University Event Marketplace</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <nav>
-        <a href="{{ url_for('index') }}" class="brand">Gather.io</a>
+        <a href="{{ url_for('index') }}" class="brand">EventHub</a>
         <div class="nav-links">
             {% if session.get('logged_in') %}
+                <a href="{{ url_for('clubs') }}" class="btn" style="color: var(--secondary);">Browse Clubs</a>
                 <a href="{{ url_for('student_dashboard' if session['role'] == 'student' else 'admin_dashboard') }}" class="btn btn-outline">Dashboard</a>
                 <a href="{{ url_for('logout') }}" class="btn" style="color: var(--secondary);">Logout</a>
             {% else %}
@@ -85,6 +86,119 @@
     <div class="main-body">
         {% block content %}{% endblock %}
     </div>
+    
+    <!-- Footer with Feedback Section -->
+    <footer style="background: #1e293b; color: white; padding: 60px 8% 30px; margin-top: 80px;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-bottom: 50px;">
+                <!-- About Section -->
+                <div>
+                    <h3 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 20px; color: white;">EventHub</h3>
+                    <p style="color: #94a3b8; line-height: 1.8; margin-bottom: 20px;">The ultimate marketplace for university club ideas. Connect with your campus community, suggest events, and make things happen.</p>
+                    <div style="display: flex; gap: 15px; margin-top: 25px;">
+                        <a href="#" style="color: #94a3b8; font-size: 1.5rem; transition: color 0.3s;" onmouseover="this.style.color='#667eea'" onmouseout="this.style.color='#94a3b8'">📧</a>
+                        <a href="#" style="color: #94a3b8; font-size: 1.5rem; transition: color 0.3s;" onmouseover="this.style.color='#667eea'" onmouseout="this.style.color='#94a3b8'">🐦</a>
+                        <a href="#" style="color: #94a3b8; font-size: 1.5rem; transition: color 0.3s;" onmouseover="this.style.color='#667eea'" onmouseout="this.style.color='#94a3b8'">📱</a>
+                    </div>
+                </div>
+
+                <!-- Feedback Form -->
+                <div>
+                    <h3 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 20px; color: white;">Help Us Improve 💡</h3>
+                    <p style="color: #94a3b8; margin-bottom: 20px; font-size: 0.95rem;">Your feedback helps us make EventHub better for everyone</p>
+                    
+                    <form id="feedbackForm" onsubmit="submitFeedback(event)" style="display: flex; flex-direction: column; gap: 15px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <input type="text" name="name" placeholder="Your Name" required style="padding: 12px 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.95rem;">
+                            <input type="email" name="email" placeholder="Your Email" required style="padding: 12px 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.95rem;">
+                        </div>
+                        
+                        <select name="feedback_type" required style="padding: 12px 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.95rem;">
+                            <option value="">Select Feedback Type</option>
+                            <option value="bug">🐛 Bug Report</option>
+                            <option value="feature">✨ Feature Request</option>
+                            <option value="improvement">🚀 Improvement Suggestion</option>
+                            <option value="general">💬 General Feedback</option>
+                        </select>
+
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="color: #94a3b8; font-size: 0.9rem;">Rating:</span>
+                            <div id="starRating" style="display: flex; gap: 5px;">
+                                <span class="star" data-rating="1" onclick="setRating(1)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
+                                <span class="star" data-rating="2" onclick="setRating(2)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
+                                <span class="star" data-rating="3" onclick="setRating(3)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
+                                <span class="star" data-rating="4" onclick="setRating(4)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
+                                <span class="star" data-rating="5" onclick="setRating(5)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
+                            </div>
+                            <input type="hidden" name="rating" id="ratingInput" value="5" required>
+                        </div>
+                        
+                        <textarea name="message" placeholder="Share your thoughts, suggestions, or report issues..." required rows="4" style="padding: 12px 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.95rem; resize: vertical; font-family: inherit;"></textarea>
+                        
+                        <button type="submit" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 14px 25px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 1rem; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                            Send Feedback
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Copyright -->
+            <div style="border-top: 1px solid #334155; padding-top: 30px; text-align: center; color: #64748b; font-size: 0.9rem;">
+                <p style="margin: 0;">© 2024 EventHub. Made with ❤️ for university students. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        let selectedRating = 5;
+
+        function setRating(rating) {
+            selectedRating = rating;
+            document.getElementById('ratingInput').value = rating;
+            
+            const stars = document.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.style.color = '#fbbf24';
+                } else {
+                    star.style.color = '#475569';
+                }
+            });
+        }
+
+        // Initialize with 5 stars
+        setRating(5);
+
+        function submitFeedback(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            
+            fetch('/submit_feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Thank you for your feedback! We appreciate your input. 🎉');
+                    form.reset();
+                    setRating(5);
+                } else {
+                    alert(data.error || 'Failed to submit feedback. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Something went wrong. Please try again later.');
+            });
+        }
+    </script>
     
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
