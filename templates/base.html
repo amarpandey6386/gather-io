@@ -26,18 +26,7 @@
         {% if messages %}
             <div id="flash-container" style="position: fixed; top: 80px; right: 20px; z-index: 9999; max-width: 400px;">
                 {% for category, message in messages %}
-                    <div class="flash-message flash-{{ category }}" style="
-                        background: {% if category == 'success' %}#dcfce7{% elif category == 'danger' %}#fee2e2{% elif category == 'warning' %}#fef9c3{% else %}#e0e7ff{% endif %};
-                        color: {% if category == 'success' %}#166534{% elif category == 'danger' %}#991b1b{% elif category == 'warning' %}#854d0e{% else %}#1e40af{% endif %};
-                        padding: 16px 20px;
-                        border-radius: 12px;
-                        margin-bottom: 10px;
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                        border-left: 4px solid {% if category == 'success' %}#16a34a{% elif category == 'danger' %}#dc2626{% elif category == 'warning' %}#ca8a04{% else %}#3b82f6{% endif %};
-                        font-weight: 600;
-                        animation: slideIn 0.3s ease-out;
-                        cursor: pointer;
-                    " onclick="this.style.animation='slideOut 0.3s ease-out'; setTimeout(() => this.remove(), 300);">
+                    <div class="flash-message flash-{{ category }}" onclick="this.style.animation='slideOut 0.3s ease-out'; setTimeout(() => this.remove(), 300);">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -46,6 +35,40 @@
     {% endwith %}
 
     <style>
+        .flash-message {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+            animation: slideIn 0.3s ease-out;
+            cursor: pointer;
+        }
+        
+        .flash-success {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #16a34a;
+        }
+        
+        .flash-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #dc2626;
+        }
+        
+        .flash-warning {
+            background: #fef9c3;
+            color: #854d0e;
+            border-left: 4px solid #ca8a04;
+        }
+        
+        .flash-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
         @keyframes slideIn {
             from {
                 transform: translateX(400px);
@@ -95,11 +118,6 @@
                 <div>
                     <h3 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 20px; color: white;">EventHub</h3>
                     <p style="color: #94a3b8; line-height: 1.8; margin-bottom: 20px;">The ultimate marketplace for university club ideas. Connect with your campus community, suggest events, and make things happen.</p>
-                    <div style="display: flex; gap: 15px; margin-top: 25px;">
-                        <a href="#" style="color: #94a3b8; font-size: 1.5rem; transition: color 0.3s;" onmouseover="this.style.color='#667eea'" onmouseout="this.style.color='#94a3b8'">📧</a>
-                        <a href="#" style="color: #94a3b8; font-size: 1.5rem; transition: color 0.3s;" onmouseover="this.style.color='#667eea'" onmouseout="this.style.color='#94a3b8'">🐦</a>
-                        <a href="#" style="color: #94a3b8; font-size: 1.5rem; transition: color 0.3s;" onmouseover="this.style.color='#667eea'" onmouseout="this.style.color='#94a3b8'">📱</a>
-                    </div>
                 </div>
 
                 <!-- Feedback Form -->
@@ -120,20 +138,8 @@
                             <option value="improvement">🚀 Improvement Suggestion</option>
                             <option value="general">💬 General Feedback</option>
                         </select>
-
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="color: #94a3b8; font-size: 0.9rem;">Rating:</span>
-                            <div id="starRating" style="display: flex; gap: 5px;">
-                                <span class="star" data-rating="1" onclick="setRating(1)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
-                                <span class="star" data-rating="2" onclick="setRating(2)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
-                                <span class="star" data-rating="3" onclick="setRating(3)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
-                                <span class="star" data-rating="4" onclick="setRating(4)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
-                                <span class="star" data-rating="5" onclick="setRating(5)" style="font-size: 1.5rem; cursor: pointer; color: #475569;">⭐</span>
-                            </div>
-                            <input type="hidden" name="rating" id="ratingInput" value="5" required>
-                        </div>
                         
-                        <textarea name="message" placeholder="Share your thoughts, suggestions, or report issues..." required rows="4" style="padding: 12px 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.95rem; resize: vertical; font-family: inherit;"></textarea>
+                        <textarea name="message" placeholder="Share your thoughts, suggestions, or report issues..." required rows="4" style="padding: 12px 15px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; font-size: 0.95rem; resize: none; font-family: inherit;"></textarea>
                         
                         <button type="submit" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 14px 25px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; font-size: 1rem; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                             Send Feedback
@@ -150,25 +156,6 @@
     </footer>
 
     <script>
-        let selectedRating = 5;
-
-        function setRating(rating) {
-            selectedRating = rating;
-            document.getElementById('ratingInput').value = rating;
-            
-            const stars = document.querySelectorAll('.star');
-            stars.forEach((star, index) => {
-                if (index < rating) {
-                    star.style.color = '#fbbf24';
-                } else {
-                    star.style.color = '#475569';
-                }
-            });
-        }
-
-        // Initialize with 5 stars
-        setRating(5);
-
         function submitFeedback(event) {
             event.preventDefault();
             
@@ -188,7 +175,6 @@
                 if (data.success) {
                     alert('Thank you for your feedback! We appreciate your input. 🎉');
                     form.reset();
-                    setRating(5);
                 } else {
                     alert(data.error || 'Failed to submit feedback. Please try again.');
                 }

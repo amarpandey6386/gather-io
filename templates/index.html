@@ -28,7 +28,19 @@
 <div id="marketplace" class="container" style="padding: 60px 8%; ">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
         <h2 style="font-size: 2rem; font-weight: 800;">Trending Ideas</h2>
-        <span style="color: var(--secondary); font-weight: 600;">Explore What's Hot 🔥</span>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span style="color: var(--secondary); font-weight: 600;">Explore What's Hot 🔥</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--secondary); font-size: 0.9rem; font-weight: 600;">Sort by:</span>
+                <select id="sortSelect" onchange="sortIdeas()" style="padding: 8px 15px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; color: #1e293b; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: border-color 0.3s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='#e2e8f0'">
+                    <option value="votes" {{ 'selected' if current_sort == 'votes' else '' }}>🔥 Most Votes</option>
+                    <option value="alphabetical" {{ 'selected' if current_sort == 'alphabetical' else '' }}>🔤 A-Z</option>
+                    <option value="newest" {{ 'selected' if current_sort == 'newest' else '' }}>🆕 Newest First</option>
+                    <option value="oldest" {{ 'selected' if current_sort == 'oldest' else '' }}>⏰ Oldest First</option>
+                    <option value="category" {{ 'selected' if current_sort == 'category' else '' }}>📂 By Category</option>
+                </select>
+            </div>
+        </div>
     </div>
     
     <div class="marketplace-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px;">
@@ -115,5 +127,14 @@
     </div>
 </div>
 {% endif %}
+
+<script>
+function sortIdeas() {
+    const sortValue = document.getElementById('sortSelect').value;
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('sort', sortValue);
+    window.location.href = currentUrl.toString();
+}
+</script>
 
 {% endblock %}

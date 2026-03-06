@@ -33,23 +33,36 @@ def index():
     cursor = db.cursor(dictionary=True)
     
     user_id = session.get('user_id', 0)
+    sort_by = request.args.get('sort', 'votes')  # Default sort by votes
+    
+    # Build the ORDER BY clause based on sort parameter
+    if sort_by == 'alphabetical':
+        order_clause = "ORDER BY i.title ASC"
+    elif sort_by == 'newest':
+        order_clause = "ORDER BY i.created_at DESC"
+    elif sort_by == 'oldest':
+        order_clause = "ORDER BY i.created_at ASC"
+    elif sort_by == 'category':
+        order_clause = "ORDER BY i.category ASC, vote_total DESC"
+    else:  # Default: votes (highest first)
+        order_clause = "ORDER BY vote_total DESC"
     
     # Query to get ideas with vote counts and check if current user voted
-    query = """
+    query = f"""
         SELECT i.*, c.club_name, 
         (SELECT COUNT(*) FROM votes v WHERE v.idea_id = i.idea_id) as vote_total,
         (SELECT COUNT(*) FROM votes v WHERE v.idea_id = i.idea_id AND v.user_id = %s) as user_voted
         FROM ideas i 
         JOIN clubs c ON i.target_club_id = c.club_id
         WHERE i.status = 'trending'
-        ORDER BY vote_total DESC
+        {order_clause}
     """
     cursor.execute(query, (user_id,))
     ideas = cursor.fetchall()
     
     cursor.close()
     db.close()
-    return render_template('index.html', ideas=ideas)
+    return render_template('index.html', ideas=ideas, current_sort=sort_by)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -848,7 +861,6 @@ def submit_feedback():
         email = data.get('email')
         feedback_type = data.get('feedback_type')
         message = data.get('message')
-        rating = data.get('rating', 5)
         
         # Get user_id if logged in
         user_id = session.get('user_id', None)
@@ -857,9 +869,9 @@ def submit_feedback():
         cursor = db.cursor()
         
         cursor.execute("""
-            INSERT INTO feedback (user_id, name, email, feedback_type, message, rating)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (user_id, name, email, feedback_type, message, rating))
+            INSERT INTO feedback (user_id, name, email, feedback_type, message)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (user_id, name, email, feedback_type, message))
         
         db.commit()
         cursor.close()
